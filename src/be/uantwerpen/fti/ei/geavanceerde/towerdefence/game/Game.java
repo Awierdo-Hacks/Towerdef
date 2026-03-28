@@ -5,6 +5,8 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Bonus;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.GameMap;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.ConfigManager;
 
 import java.util.ArrayList;
@@ -23,11 +25,12 @@ import java.util.Optional;
  *   - Tracks score and gold
  *   - Holds the current GameState
  *   - Runs the main update() loop each frame (implemented in Fase 6)
- *   - Uses EntityFactory (Fase 3) to create entities without knowing about J2D
+ *   - Uses EntityFactory (Abstract Factory pattern) to create entities
+ *     without knowing about J2D — game logic stays visualization-free.
  *
- * FACTORY (Fase 3 placeholder):
- *   entityFactory is currently Object. In Fase 3 it becomes EntityFactory.
- *   Injected via init() so game logic never imports the J2D package.
+ * ABSTRACT FACTORY:
+ *   EntityFactory is injected via init(). The game package only knows the
+ *   interface; the J2D package provides the concrete J2dEntityFactory.
  */
 public final class Game {
 
@@ -66,12 +69,20 @@ public final class Game {
     private Optional<Base> base;
 
     // -------------------------------------------------------------------------
-    // Factory (placeholder until Fase 3)
+    // Map — loaded from a level .properties file in Fase 4
     // -------------------------------------------------------------------------
 
-    // TODO (Fase 3): Replace Object with EntityFactory interface
-    @SuppressWarnings("unused")
-    private Object entityFactory;
+    // The current level's tile grid, paths, spawn point and build spots
+    private GameMap gameMap;
+
+    // -------------------------------------------------------------------------
+    // Abstract Factory — creates all game entities without knowing J2D
+    // -------------------------------------------------------------------------
+
+    // Injected via init(), implemented by J2dEntityFactory in the j2d package
+    private EntityFactory entityFactory;
+
+    public EntityFactory getEntityFactory() { return entityFactory; }
 
     // -------------------------------------------------------------------------
     // Singleton
@@ -108,13 +119,26 @@ public final class Game {
      * Sets up the game for play: stores the factory, reads config values.
      * Call this once before starting the game loop.
      *
-     * factory parameter is Object for now — replaced by EntityFactory in Fase 3.
+     * The EntityFactory is injected here so Game never depends on J2D directly.
      */
-    public void init(Object factory, ConfigManager config) {
+    public void init(EntityFactory factory, ConfigManager config) {
         this.entityFactory = factory;
         this.gold          = config.getInt("starting.gold", 100);
         this.score         = 0;
         this.state         = GameState.MENU;
+    }
+
+    /*
+     * Loads a level's map from a level-specific config file.
+     *
+     * Called after init() — creates the GameMap which parses the tile grid,
+     * enemy paths, build spots, spawn point and base position from the file.
+     *
+     * Usage:
+     *   game.loadLevel(new ConfigManager("levels/level1.properties"));
+     */
+    public void loadLevel(ConfigManager levelConfig) {
+        this.gameMap = new GameMap(levelConfig);
     }
 
     // -------------------------------------------------------------------------
@@ -150,7 +174,8 @@ public final class Game {
         this.enemies.clear();
         this.projectiles.clear();
         this.bonuses.clear();
-        this.base = Optional.empty();
+        this.base    = Optional.empty();
+        this.gameMap  = null;
     }
 
     // -------------------------------------------------------------------------
@@ -166,6 +191,8 @@ public final class Game {
     public Optional<Base> getBase() { return base; }
 
     public void setBase(Base base)  { this.base = Optional.of(base); }
+
+    public GameMap getGameMap()     { return gameMap; }
 
     // -------------------------------------------------------------------------
     // State

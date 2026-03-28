@@ -8,37 +8,42 @@ import java.util.Optional;
 /*
  * Abstract base class for all tower types.
  *
- * Towers are stationary defensive structures placed by the player on build spots.
- * Each tower has a range, damage value, and fire rate. Each frame the tower:
- *   1. Checks if the fire cooldown has expired.
- *   2. Finds the best target within range using findTarget().
- *   3. Creates a projectile via fire() and returns it to the game loop.
+ * Towers are stationary defensive structures placed on designated build spots.
+ * Each frame the game loop:
+ *   1. Calls tower.update(deltaTime)         — decrements fire cooldown
+ *   2. Calls tower.findTarget(enemies)        — returns best enemy in range
+ *   3. If target found and ready to fire:
+ *        factory.createProjectile(...)         — game loop creates the projectile
+ *        tower.resetCooldown()                 — starts the inter-shot timer
+ *   4. Calls tower.applyAreaEffect(enemies)   — used by IceTower to apply slow aura
  *
- * The concrete subclasses (ArrowTower, CannonTower, IceTower) define their own
- * targeting strategy and projectile type. J2d subclasses further extend these
- * to add rendering.
+ * Projectile creation is intentionally NOT done inside the tower — it's the game
+ * loop's job to call the factory. This keeps towers decoupled from the factory.
  *
- * Uses Optional<Projectile> instead of null to signal "no shot this frame".
+ * Subclasses define the targeting strategy in findTarget():
+ *   ArrowTower  — closest enemy in range     (Streams: min by distance)
+ *   CannonTower — highest HP enemy in range  (Streams: max by currentHealth)
+ *   IceTower    — fastest enemy in range     (Streams: max by speed)
  */
 public abstract class Tower extends Entity {
 
-    // How far this tower can detect and hit enemies (in game-world units)
+    // Detection and attack radius in game-world units
     protected double range;
 
-    // Base damage dealt per projectile hit
+    // Damage per projectile hit (not used by IceTower which applies a slow instead)
     protected int damage;
 
-    // How many shots this tower fires per second (e.g. 2.0 = two shots/sec)
+    // Shots per second — higher = faster firing
     protected double fireRate;
 
-    // Countdown until the next shot is allowed — decremented each frame by deltaTime
+    // Counts down between shots; the tower may fire when this reaches 0
     protected double fireCooldown;
 
-    // Gold cost to place this tower — read by the Game when the player buys it
+    // Gold cost for the player to place this tower
     protected int cost;
 
     /*
-     * Sets up a tower at the given position with core combat stats.
+     * Shared constructor — all tower subclasses pass their stats up through super().
      * fireCooldown starts at 0 so the tower can fire immediately when placed.
      */
     public Tower(Position position, double width, double height,
@@ -47,66 +52,85 @@ public abstract class Tower extends Entity {
         this.range        = range;
         this.damage       = damage;
         this.fireRate     = fireRate;
-        this.fireCooldown = 0.0;  // ready to fire immediately
+        this.fireCooldown = 0.0;
         this.cost         = cost;
     }
 
     // -------------------------------------------------------------------------
-    // Core tower logic — runs each frame via Entity.update()
+    // Update — manages the fire cooldown each frame
     // -------------------------------------------------------------------------
 
     /*
-     * Decrements the fire cooldown each frame and fires when ready.
-     *
-     * Concrete subclasses can override this if they need special update behaviour
-     * (e.g. IceTower applying a slow aura every frame), but should call
-     * super.update(deltaTime) to keep the cooldown working.
+     * Decrements the fire cooldown by the elapsed frame time.
+     * Subclasses may override to add extra per-frame behaviour (e.g. IceTower
+     * applies its slow in applyAreaEffect instead of here), but should still
+     * call super.update(deltaTime) to keep the cooldown ticking.
      */
     @Override
     public void update(double deltaTime) {
-        // Count down until the next shot is allowed
         if (fireCooldown > 0) {
             fireCooldown -= deltaTime;
         }
     }
 
     // -------------------------------------------------------------------------
-    // Abstract targeting & firing — implemented differently per tower type
+    // Targeting — must be implemented by each tower subclass
     // -------------------------------------------------------------------------
 
     /*
-     * Selects the best enemy target from the given list.
+     * Selects the best target from the given list using this tower's strategy.
      *
-     * Subclasses decide the targeting strategy:
-     *   - ArrowTower: nearest enemy in range
-     *   - CannonTower: highest HP enemy in range
-     *   - IceTower: fastest enemy in range
+     * Implementations MUST:
+     *   - Only consider enemies that are alive
+     *   - Only consider enemies within this.range
+     *   - Return Optional.empty() when no valid target exists (never return null)
      *
-     * Returns Optional.empty() if no valid target exists (no enemies in range).
-     * Uses Optional to avoid returning null — null-free design as required.
+     * The Java Streams API is used here (requirement): filter by range, then
+     * apply a comparator to pick the best candidate.
      */
     public abstract Optional<Enemy> findTarget(List<Enemy> enemies);
 
+    // -------------------------------------------------------------------------
+    // Area effects — override in towers that affect all enemies in a radius
+    // -------------------------------------------------------------------------
+
     /*
-     * Creates and returns a projectile aimed at the current target.
+     * Applies a per-frame area effect to nearby enemies.
      *
-     * The game loop calls update() first (which may set an internal target),
-     * then calls fire() to retrieve the projectile if one was created.
-     * Returns Optional.empty() if the tower is still on cooldown or has no target.
+     * Default: no-op. IceTower overrides this to apply a slow to all enemies
+     * within its range every frame.
      *
-     * After firing, the subclass must reset fireCooldown to 1.0 / fireRate.
+     * The game loop calls this on every tower every frame, so keep it cheap.
      */
-    public abstract Optional<Projectile> fire();
+    public void applyAreaEffect(List<Enemy> enemies) {
+        // no area effect by default — only IceTower overrides this
+    }
+
+    // -------------------------------------------------------------------------
+    // Cooldown management — called by the game loop after firing
+    // -------------------------------------------------------------------------
+
+    /*
+     * Resets the inter-shot cooldown.
+     * Call this immediately after the game loop has created a projectile for
+     * this tower, so it won't fire again until 1/fireRate seconds have passed.
+     */
+    public void resetCooldown() {
+        // Guard against zero fireRate (e.g. IceTower) — avoids Infinity from 1.0/0.0
+        if (fireRate > 0) {
+            this.fireCooldown = 1.0 / fireRate;
+        }
+    }
 
     // -------------------------------------------------------------------------
     // Getters
     // -------------------------------------------------------------------------
 
-    public double getRange()    { return range; }
-    public int    getDamage()   { return damage; }
-    public double getFireRate() { return fireRate; }
-    public int    getCost()     { return cost; }
+    public double  getRange()        { return range; }
+    public int     getDamage()       { return damage; }
+    public double  getFireRate()     { return fireRate; }
+    public int     getCost()         { return cost; }
 
-    /* True when the cooldown has expired and the tower is ready to fire. */
-    public boolean isReadyToFire() { return fireCooldown <= 0; }
+    /* Returns true when the tower is allowed to fire (cooldown expired). */
+    public boolean isReadyToFire()   { return fireCooldown <= 0; }
 }

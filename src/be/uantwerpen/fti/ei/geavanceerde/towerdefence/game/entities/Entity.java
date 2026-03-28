@@ -34,7 +34,8 @@ public abstract class Entity {
      * All subclasses must call super(position, width, height).
      */
     public Entity(Position position, double width, double height) {
-        this.position = position;
+        // Defensive copy — prevents shared mutable state if the caller reuses the same Position
+        this.position = new Position(position.getX(), position.getY());
         this.width    = width;
         this.height   = height;
         this.alive    = true;

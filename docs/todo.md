@@ -10,27 +10,30 @@
 - [x] `Game.java` — Singleton skeleton (private constructor, getInstance, entity lists)
 
 ## Fase 2: Entity Hierarchy
-- [ ] `Entity.java` — abstract basis (position, size, alive, update, collidesWith)
-- [ ] `Tower.java` — abstract (range, damage, fireRate, findTarget, fire)
-- [ ] `Enemy.java` — abstract (health, speed, path, moveAlongPath, takeDamage)
-- [ ] `Projectile.java` — abstract (damage, speed, target)
-- [ ] `Base.java` — abstract (health points, takeDamage)
-- [ ] `Obstacle.java` — abstract (blokkeert plaatsing)
-- [ ] `Bonus.java` — abstract (effect, duur)
+- [x] `Entity.java` — abstract basis (position, size, alive, update, collidesWith)
+- [x] `Tower.java` — abstract (range, damage, fireRate, findTarget, applyAreaEffect)
+- [x] `Enemy.java` — abstract (health, speed, path, moveAlongPath, takeDamage, applySlow)
+- [x] `Projectile.java` — abstract (damage, speed, target)
+- [x] `Base.java` — abstract (health points, takeDamage)
+- [x] `Obstacle.java` — abstract (blokkeert plaatsing)
+- [x] `Bonus.java` — abstract (effect, duur)
 
 ## Fase 3: Abstract Factory
-- [ ] `EntityFactory.java` — interface met alle create-methodes
-- [ ] `ArrowTower.java` — snel, lage schade
-- [ ] `CannonTower.java` — langzaam, hoge schade, splash
-- [ ] `IceTower.java` — vertraagt vijanden
-- [ ] `BasicEnemy.java` — standaard vijand
-- [ ] `ArmoredEnemy.java` — veel HP, langzaam
-- [ ] `FlyingEnemy.java` — negeert terrein
+- [x] `EntityFactory.java` — interface met alle create-methodes
+- [x] `ArrowTower.java` — snel, lage schade (Streams: closest enemy)
+- [x] `CannonTower.java` — langzaam, hoge schade, splash (Streams: highest HP)
+- [x] `IceTower.java` — vertraagt vijanden (Streams: area slow + fastest enemy)
+- [x] `BasicEnemy.java` — standaard vijand
+- [x] `ArmoredEnemy.java` — veel HP, langzaam, damage resistance
+- [x] `FlyingEnemy.java` — negeert terrein, optional flyingPath
 
 ## Fase 4: Map & Pathfinding
-- [ ] `Tile.java` — tegel type + positie (+ TileType enum)
-- [ ] `Path.java` — lijst van waypoints
-- [ ] `GameMap.java` — grid, spawn, build spots, pad, level laden
+- [x] `TileType.java` — enum (GRASS, PATH, WATER, BUILD_SPOT, SPAWN, BASE)
+- [x] `Tile.java` — tegel type + positie, isWalkable(), isBuildable()
+- [x] `Path.java` — lijst van waypoints (unmodifiable)
+- [x] `GameMap.java` — grid, spawn, build spots, pad, level laden uit .properties
+- [x] `level1.properties` — level 1 definitie (winding road)
+- [x] `level2.properties` — level 2 definitie (the gauntlet)
 
 ## Fase 5: J2D Visualization
 - [ ] `J2dGame.java` — JFrame, Canvas, BufferStrategy, render loop, coord mapping
