@@ -1,5 +1,6 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d;
 
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.GameView;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Bonus;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
@@ -7,6 +8,7 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Obstacle;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.ConfigManager;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dArrowTower;
@@ -26,31 +28,44 @@ import java.util.List;
  * CONCRETE FACTORY — the Java2D implementation of EntityFactory.
  *
  * This class is the other half of the Abstract Factory pattern:
- *   EntityFactory  (interface, lives in game.factory)
- *   J2dEntityFactory (concrete, lives in j2d)
+ *   EntityFactory     (interface, lives in game.factory)
+ *   J2dEntityFactory  (concrete, lives in j2d)
  *
- * Every create method returns a J2d* entity (which extends the abstract
- * game-logic class AND implements render() with Graphics2D drawing).
- * The return types are the abstract interfaces (Tower, Enemy, etc.) so
- * the game logic package never sees the J2d classes directly.
+ * RESPONSIBILITIES:
+ *   1. Creates the J2dGame window (the visualization layer) from the config.
+ *   2. Every create method returns a J2d* entity (extends abstract game-logic
+ *      class + implements render() with Graphics2D). Return types are the
+ *      abstract interfaces (Tower, Enemy, etc.) so game logic never sees J2d.
+ *   3. getView() provides the GameView interface to Game, keeping
+ *      game/visualization separation intact.
  *
  * WIRING:
- *   Main.java creates a J2dEntityFactory with the J2dGame reference,
- *   then passes it to Game.getInstance().init(factory, config).
- *   From that point on, every entity the game creates goes through
- *   this factory — the game logic stays visualization-free.
- *
- * J2dGame reference:
- *   Passed to every J2d entity so it can access the Graphics2D context
- *   and coordinate conversion during render().
+ *   Main creates a J2dEntityFactory(config) and passes it to Game.start().
+ *   The factory builds the window internally and provides all entity creation.
+ *   The game logic only sees EntityFactory and GameView — never J2d classes.
  */
 public class J2dEntityFactory implements EntityFactory {
 
-    // The visualization layer — passed to every J2d entity for rendering
+    // The visualization layer — created in constructor, passed to all J2d entities
     private final J2dGame j2dGame;
 
-    public J2dEntityFactory(J2dGame j2dGame) {
-        this.j2dGame = j2dGame;
+    /*
+     * Creates the Java2D visualization (JFrame + Canvas) and prepares
+     * the factory for entity creation.
+     *
+     * The config is used for window size, game-world dimensions, title, etc.
+     */
+    public J2dEntityFactory(ConfigManager config) {
+        this.j2dGame = new J2dGame(config);
+    }
+
+    // -------------------------------------------------------------------------
+    // GameView — visualization access for the Game singleton
+    // -------------------------------------------------------------------------
+
+    @Override
+    public GameView getView() {
+        return j2dGame;
     }
 
     // -------------------------------------------------------------------------

@@ -2,6 +2,7 @@ package be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d;
 
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.Game;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.GameState;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.GameView;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Bonus;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
@@ -45,7 +46,7 @@ import javax.swing.JFrame;
  * J2d entities hold a reference to this J2dGame object so they can call
  * getGraphics2D() and toScreenX/Y() inside their render() method.
  */
-public class J2dGame {
+public class J2dGame implements GameView {
 
     // -------------------------------------------------------------------------
     // Window
@@ -372,6 +373,26 @@ public class J2dGame {
     public Graphics2D getGraphics2D()  { return g2d; }
     public InputHandler getInputHandler() { return inputHandler; }
     public Canvas getCanvas()          { return canvas; }
+
+    // -------------------------------------------------------------------------
+    // GameView interface — delegates input queries to InputHandler
+    // Game.start() calls these so it never imports j2d classes directly.
+    // -------------------------------------------------------------------------
+
+    @Override
+    public boolean wasMouseClicked()  { return inputHandler.wasMouseClicked(); }
+
+    @Override
+    public boolean wasPausePressed()  { return inputHandler.wasPausePressed(); }
+
+    @Override
+    public double getMouseGameX()     { return inputHandler.getMouseGameX(); }
+
+    @Override
+    public double getMouseGameY()     { return inputHandler.getMouseGameY(); }
+
+    @Override
+    public int getSelectedTower()     { return inputHandler.getSelectedTower(); }
     public JFrame getFrame()           { return frame; }
     public int getWindowWidth()        { return windowWidth; }
     public int getWindowHeight()       { return windowHeight; }

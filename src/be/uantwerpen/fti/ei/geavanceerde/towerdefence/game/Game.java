@@ -7,9 +7,12 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.GameMap;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.ArrowTower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.CannonTower;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.IceTower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.ConfigManager;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Stopwatch;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -23,19 +26,20 @@ import java.util.Optional;
  *   Only one Game instance exists. The constructor is private.
  *   All access goes through Game.getInstance().
  *
+ * ABSTRACT FACTORY:
+ *   EntityFactory is injected via start(). The game package only knows the
+ *   interface; the J2D package provides the concrete J2dEntityFactory.
+ *   The factory also provides the GameView (render + input abstraction),
+ *   keeping the game package completely free of visualization imports.
+ *
  * ROLE:
  *   - Owns all entity lists (towers, enemies, projectiles, bonuses, base)
  *   - Tracks score and gold
  *   - Holds the current GameState
- *   - Runs the main update() loop each frame
- *   - Uses EntityFactory (Abstract Factory pattern) to create entities
- *     without knowing about J2D — game logic stays visualization-free.
+ *   - Runs the main game loop via start()
+ *   - Handles player input (pause, tower placement, restart)
  *
- * ABSTRACT FACTORY:
- *   EntityFactory is injected via init(). The game package only knows the
- *   interface; the J2D package provides the concrete J2dEntityFactory.
- *
- * GAME LOOP (update):
+ * GAME LOOP (inside start → update):
  *   1. Spawn enemies (simple timer, replaced by WaveManager in Fase 7)
  *   2. Update enemies (move + slow timer)
  *   3. Check enemies reaching base
@@ -78,10 +82,12 @@ public final class Game {
     private GameMap gameMap;
 
     // -------------------------------------------------------------------------
-    // Abstract Factory
+    // Abstract Factory + Visualization
     // -------------------------------------------------------------------------
 
     private EntityFactory entityFactory;
+    private GameView view;
+    private ConfigManager config;
 
     public EntityFactory getEntityFactory() { return entityFactory; }
 
@@ -90,6 +96,8 @@ public final class Game {
     // -------------------------------------------------------------------------
 
     private static final double SPAWN_INTERVAL = 1.5;  // seconds between spawns
+    private static final int TOTAL_ENEMIES     = 15;   // placeholder until WaveManager
+    private static final int FRAME_DELAY_MS    = 16;   // ~60 FPS
 
     // Countdown until the next enemy spawns
     private double spawnTimer;
@@ -122,41 +130,180 @@ public final class Game {
         return instance;
     }
 
-    // -------------------------------------------------------------------------
-    // Initialisation
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // start() — the single entry point called by Main
+    // =========================================================================
 
     /*
-     * Sets up the game: stores the factory, reads config values.
-     * Call once before starting the game loop.
-     */
-    public void init(EntityFactory factory, ConfigManager config) {
-        this.entityFactory = factory;
-        this.gold          = config.getInt("starting.gold", 200);
-        this.score         = 0;
-        this.state         = GameState.MENU;
-    }
-
-    /*
-     * Loads a level from a level config file.
-     * Called after init() — creates the GameMap with tile grid, paths, etc.
-     */
-    public void loadLevel(ConfigManager levelConfig) {
-        this.gameMap = new GameMap(levelConfig);
-    }
-
-    /*
-     * Prepares the game to start playing.
-     * Sets up the enemy spawn queue and transitions to PLAYING state.
+     * Sets up and runs the game. This is the only method Main needs to call.
      *
-     * totalEnemies: how many enemies to spawn this session
-     *               (will be read from wave data in Fase 7)
+     * 1. Stores the factory and config
+     * 2. Gets the GameView from the factory (render + input)
+     * 3. Loads the selected level and creates the base
+     * 4. Runs the game loop: input → update → render → sleep
+     *
+     * The factory provides both entity creation AND the visualization layer
+     * via getView(), so Game never imports any J2D classes.
      */
-    public void startPlaying(int totalEnemies) {
-        this.enemiesToSpawn = totalEnemies;
+    public void start(EntityFactory factory, ConfigManager config) {
+        this.entityFactory = factory;
+        this.config        = config;
+        this.view          = factory.getView();
+
+        // Load the level and create the base
+        setupLevel();
+
+        // Game loop — runs until the window is closed
+        Stopwatch stopwatch = new Stopwatch();
+
+        while (true) {
+            double deltaTime = stopwatch.tick();
+
+            // Process player input (pause, tower placement, restart)
+            handleInput();
+
+            // Update game logic (only runs while PLAYING)
+            update(deltaTime);
+
+            // Render everything via the abstract GameView
+            view.render();
+
+            // Frame rate limiter (~60 FPS)
+            try {
+                Thread.sleep(FRAME_DELAY_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Level setup — used by start() and restartGame()
+    // -------------------------------------------------------------------------
+
+    /*
+     * Loads the selected level from config, creates the map and base,
+     * sets starting resources, and begins enemy spawning.
+     */
+    private void setupLevel() {
+        // Load the level file
+        int level = config.getInt("selected.level", 1);
+        ConfigManager levelConfig = new ConfigManager("levels/level" + level + ".properties");
+        this.gameMap = new GameMap(levelConfig);
+
+        // Set starting resources
+        this.gold  = config.getInt("starting.gold", 200);
+        this.score = 0;
+
+        // Create the base at the centre of the base tile
+        int startingLives = config.getInt("starting.lives", 20);
+        Position basePos = gameMap.getBasePosition();
+        Base baseEntity = entityFactory.createBase(
+            new Position(basePos.getX() + 0.5, basePos.getY() + 0.5),
+            startingLives
+        );
+        this.base = Optional.of(baseEntity);
+
+        // Begin spawning enemies
+        this.enemiesToSpawn = TOTAL_ENEMIES;
         this.enemiesSpawned = 0;
-        this.spawnTimer     = 0;  // spawn first enemy immediately
+        this.spawnTimer     = 0;
         this.state          = GameState.PLAYING;
+    }
+
+    // -------------------------------------------------------------------------
+    // Input handling — called once per frame
+    // -------------------------------------------------------------------------
+
+    /*
+     * Processes player input from the GameView:
+     *   - P key: toggle pause / unpause
+     *   - Mouse click + tower selected: place a tower if affordable and buildable
+     *   - Click after GAME_OVER or WON: restart the game
+     */
+    private void handleInput() {
+        // Pause toggle
+        if (view.wasPausePressed()) {
+            if (state == GameState.PLAYING) {
+                state = GameState.PAUSED;
+            } else if (state == GameState.PAUSED) {
+                state = GameState.PLAYING;
+            }
+        }
+
+        // Mouse click
+        if (!view.wasMouseClicked()) return;
+
+        // If the game is over or won, a click restarts
+        if (state == GameState.GAME_OVER || state == GameState.WON) {
+            restartGame();
+            return;
+        }
+
+        // Only allow tower placement while playing
+        if (state != GameState.PLAYING) return;
+
+        // Tower placement
+        int towerType = view.getSelectedTower();
+        if (towerType == 0) return;
+
+        // Convert mouse position to game-world tile coordinates
+        double gameX = view.getMouseGameX();
+        double gameY = view.getMouseGameY();
+        Position clickPos = new Position(gameX, gameY);
+
+        // Check if the tile is a valid build spot
+        if (!gameMap.canBuildAt(clickPos)) return;
+
+        // Snap the tower to the centre of the tile
+        int tileX = (int) gameX;
+        int tileY = (int) gameY;
+        Position towerPos = new Position(tileX + 0.5, tileY + 0.5);
+
+        // Check no tower already exists on this tile
+        for (Tower existing : towers) {
+            double dx = Math.abs(existing.getPosition().getX() - towerPos.getX());
+            double dy = Math.abs(existing.getPosition().getY() - towerPos.getY());
+            if (dx < 0.5 && dy < 0.5) return;
+        }
+
+        // Determine cost and check if the player can afford it
+        int cost;
+        switch (towerType) {
+            case 1: cost = ArrowTower.DEFAULT_COST;  break;
+            case 2: cost = CannonTower.DEFAULT_COST; break;
+            case 3: cost = IceTower.DEFAULT_COST;    break;
+            default: return;
+        }
+
+        if (gold < cost) return;
+
+        // Create the tower via the Abstract Factory
+        Tower tower;
+        switch (towerType) {
+            case 1: tower = entityFactory.createArrowTower(towerPos);  break;
+            case 2: tower = entityFactory.createCannonTower(towerPos); break;
+            case 3: tower = entityFactory.createIceTower(towerPos);    break;
+            default: return;
+        }
+
+        // Deduct gold and add the tower to the game
+        spendGold(cost);
+        towers.add(tower);
+    }
+
+    // -------------------------------------------------------------------------
+    // Restart — resets and reloads the level
+    // -------------------------------------------------------------------------
+
+    /*
+     * Called when the player clicks after GAME_OVER or WON.
+     * Clears all state and reloads the current level.
+     */
+    private void restartGame() {
+        reset();
+        setupLevel();
     }
 
     // =========================================================================
@@ -267,7 +414,6 @@ public final class Game {
         while (it.hasNext()) {
             Enemy e = it.next();
             if (e.isAlive() && e.hasReachedBase()) {
-                // Deal damage to the base
                 base.ifPresent(b -> b.takeDamage(1));
                 e.destroy();
                 it.remove();
@@ -295,7 +441,6 @@ public final class Game {
             if (target.isPresent()) {
                 Enemy t = target.get();
 
-                // Create a projectile flying from tower to the enemy's current position
                 Projectile proj = entityFactory.createProjectile(
                     tower.getPosition(), t.getPosition(), tower.getDamage()
                 );
@@ -330,12 +475,10 @@ public final class Game {
                 if (!e.isAlive()) continue;
 
                 if (p.collidesWith(e)) {
-                    // Store impact position before onHit modifies state
                     Position impact = new Position(
                         p.getPosition().getX(), p.getPosition().getY()
                     );
 
-                    // Direct hit
                     p.onHit(e);
 
                     // Splash damage — hit all nearby enemies (except the direct target)
@@ -347,7 +490,7 @@ public final class Game {
                             }
                         }
                     }
-                    break;  // projectile dies after one hit
+                    break;
                 }
             }
         }
@@ -382,13 +525,11 @@ public final class Game {
      * WON:       all enemies have been spawned AND no enemies remain alive
      */
     private void checkWinLose() {
-        // Lose condition — base destroyed
         if (base.isPresent() && base.get().isDestroyed()) {
             state = GameState.GAME_OVER;
             return;
         }
 
-        // Win condition — all enemies spawned and cleared
         if (enemiesToSpawn <= 0 && enemies.isEmpty()) {
             state = GameState.WON;
         }
@@ -410,11 +551,11 @@ public final class Game {
         this.enemies.clear();
         this.projectiles.clear();
         this.bonuses.clear();
-        this.base         = Optional.empty();
-        this.gameMap       = null;
-        this.enemiesToSpawn = 0;
-        this.enemiesSpawned = 0;
-        this.spawnTimer     = 0;
+        this.base           = Optional.empty();
+        this.gameMap         = null;
+        this.enemiesToSpawn  = 0;
+        this.enemiesSpawned  = 0;
+        this.spawnTimer      = 0;
     }
 
     // =========================================================================

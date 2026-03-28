@@ -1,5 +1,6 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory;
 
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.GameView;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Bonus;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
@@ -93,4 +94,15 @@ public interface EntityFactory {
 
     /* Creates a collectible bonus pickup at the given position. */
     Bonus createBonus(Position position);
+
+    // -------------------------------------------------------------------------
+    // Visualization
+    // -------------------------------------------------------------------------
+
+    /*
+     * Returns the visualization layer created by this factory.
+     * Game calls this in start() to get its render + input interface,
+     * without ever knowing which concrete view (J2dGame, etc.) is behind it.
+     */
+    GameView getView();
 }
