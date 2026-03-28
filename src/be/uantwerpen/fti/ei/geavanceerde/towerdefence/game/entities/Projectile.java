@@ -92,12 +92,28 @@ public abstract class Projectile extends Entity {
     }
 
     // -------------------------------------------------------------------------
+    // Splash damage — set by the game loop for CannonTower projectiles
+    // -------------------------------------------------------------------------
+
+    // Defaults to 0 (no splash). The game loop calls setSplash() after creating
+    // a projectile for a CannonTower, copying the tower's splash stats onto it.
+    protected double splashRadius = 0;
+    protected int    splashDamage = 0;
+
+    public void setSplash(double radius, int damage) {
+        this.splashRadius = radius;
+        this.splashDamage = damage;
+    }
+
+    // -------------------------------------------------------------------------
     // Getters
     // -------------------------------------------------------------------------
 
     public int      getDamage()        { return damage; }
     public double   getSpeed()         { return speed; }
     public Position getTargetPosition(){ return targetPosition; }
+    public double   getSplashRadius()  { return splashRadius; }
+    public int      getSplashDamage()  { return splashDamage; }
 
     /* True when the projectile has reached its destination (set in update). */
     public boolean hasReachedTarget()  { return !alive; }

@@ -36,24 +36,28 @@
 - [x] `level2.properties` — level 2 definitie (the gauntlet)
 
 ## Fase 5: J2D Visualization
-- [ ] `J2dGame.java` — JFrame, Canvas, BufferStrategy, render loop, coord mapping
-- [ ] `J2dEntityFactory.java` — concrete factory, maakt J2d entities
-- [ ] `InputHandler.java` — KeyListener + MouseListener
-- [ ] `J2dTower.java` — tekent torens
-- [ ] `J2dEnemy.java` — tekent vijanden
-- [ ] `J2dProjectile.java` — tekent projectielen
-- [ ] `J2dBase.java` — tekent base
-- [ ] `J2dObstacle.java` — tekent obstakels
-- [ ] `J2dBonus.java` — tekent bonussen
+- [x] `J2dGame.java` — JFrame, Canvas, BufferStrategy, render pipeline, coord mapping
+- [x] `J2dEntityFactory.java` — concrete factory implements EntityFactory
+- [x] `InputHandler.java` — KeyListener + MouseListener + tower selection
+- [x] `J2dArrowTower.java` — groene toren, driehoek turret
+- [x] `J2dCannonTower.java` — grijze toren, kanon barrel
+- [x] `J2dIceTower.java` — cyaan diamant, range aura
+- [x] `J2dBasicEnemy.java` — rode cirkel, health bar
+- [x] `J2dArmoredEnemy.java` — maroon vierkant, gele health bar
+- [x] `J2dFlyingEnemy.java` — oranje driehoek, drop shadow
+- [x] `J2dProjectile.java` — gele cirkel
+- [x] `J2dBase.java` — goud kasteel met turrets, health bar
+- [x] `J2dObstacle.java` — bruin afgerond vierkant
+- [x] `J2dBonus.java` — geel diamant, pulse effect
 
 ## Fase 6: Game Loop & Mechanics
-- [ ] `Main.java` — entry point, wiring, game loop starten
-- [ ] Game loop implementeren in Game.update(deltaTime)
-- [ ] Tower targeting (Streams API)
-- [ ] Enemy movement langs pad
-- [ ] Projectile movement + collision
-- [ ] Gold/score systeem
-- [ ] Win/lose condities
+- [x] `Main.java` — entry point, wiring, game loop starten
+- [x] Game loop implementeren in Game.update(deltaTime)
+- [x] Tower targeting (Streams API)
+- [x] Enemy movement langs pad
+- [x] Projectile movement + collision
+- [x] Gold/score systeem
+- [x] Win/lose condities
 
 ## Fase 7: Waves & Levels
 - [ ] `Wave.java` — enemy spawn definitie
