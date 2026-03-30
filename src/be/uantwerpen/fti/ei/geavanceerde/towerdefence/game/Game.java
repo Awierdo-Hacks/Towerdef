@@ -13,6 +13,8 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.IceTower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.ConfigManager;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Stopwatch;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.scripting.LuaScriptEngine;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.wave.WaveManager;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -40,7 +42,7 @@ import java.util.Optional;
  *   - Handles player input (pause, tower placement, restart)
  *
  * GAME LOOP (inside start → update):
- *   1. Spawn enemies (simple timer, replaced by WaveManager in Fase 7)
+ *   1. Spawn enemies via WaveManager (leest golven uit level .properties)
  *   2. Update enemies (move + slow timer)
  *   3. Check enemies reaching base
  *   4. Update towers (cooldown tick)
@@ -92,21 +94,28 @@ public final class Game {
     public EntityFactory getEntityFactory() { return entityFactory; }
 
     // -------------------------------------------------------------------------
-    // Simple enemy spawner (replaced by WaveManager in Fase 7)
+    // Fase 7: WaveManager — beheert alle golven voor het huidige level
     // -------------------------------------------------------------------------
 
-    private static final double SPAWN_INTERVAL = 1.5;  // seconds between spawns
-    private static final int TOTAL_ENEMIES     = 15;   // placeholder until WaveManager
-    private static final int FRAME_DELAY_MS    = 16;   // ~60 FPS
+    private static final int FRAME_DELAY_MS = 16;  // ~60 FPS
 
-    // Countdown until the next enemy spawns
-    private double spawnTimer;
+    /*
+     * WaveManager leest de golfdefinities uit de level .properties file en
+     * spawnt vijanden op het juiste moment. Game vraagt elke frame aan de
+     * manager of er een vijand gespawnd moet worden via waveManager.tick().
+     */
+    private WaveManager waveManager;
 
-    // How many enemies still need to be spawned this game
-    private int enemiesToSpawn;
+    // -------------------------------------------------------------------------
+    // Fase 8: LuaScriptEngine — enemy AI via Lua script
+    // -------------------------------------------------------------------------
 
-    // How many have been spawned so far (used to alternate types)
-    private int enemiesSpawned;
+    /*
+     * Wikkelt de LuaJ runtime. Laadt enemy_ai.lua bij setup en roept
+     * callUpdateEnemy(enemy, deltaTime) elke frame per vijand aan.
+     * null als lua.script niet geconfigureerd is of het laden mislukt.
+     */
+    private LuaScriptEngine luaEngine;
 
     // -------------------------------------------------------------------------
     // Singleton
@@ -205,11 +214,18 @@ public final class Game {
         );
         this.base = Optional.of(baseEntity);
 
-        // Begin spawning enemies
-        this.enemiesToSpawn = TOTAL_ENEMIES;
-        this.enemiesSpawned = 0;
-        this.spawnTimer     = 0;
-        this.state          = GameState.PLAYING;
+        // WaveManager aanmaken op basis van de level config (leest wave.count, wave.N.enemies)
+        this.waveManager = new WaveManager(levelConfig);
+
+        // Lua script laden (pad staat in game.properties als "lua.script")
+        // Lege string of ontbrekende key schakelt Lua uit zonder crash.
+        String luaScript = config.getString("lua.script", "");
+        if (!luaScript.isEmpty()) {
+            this.luaEngine = new LuaScriptEngine();
+            this.luaEngine.loadScript(luaScript);
+        }
+
+        this.state = GameState.PLAYING;
     }
 
     // -------------------------------------------------------------------------
@@ -321,6 +337,15 @@ public final class Game {
             if (e.isAlive()) e.update(deltaTime);
         }
 
+        // 2b. Lua AI — roept updateEnemy(enemy, deltaTime) aan voor elke levende vijand.
+        //     Wordt VOOR IceTower.applyAreaEffect() uitgevoerd (stap 5), zodat
+        //     IceTower altijd prioriteit heeft over een Lua-snelheidsboost.
+        if (luaEngine != null) {
+            for (Enemy e : enemies) {
+                if (e.isAlive()) luaEngine.callUpdateEnemy(e, deltaTime);
+            }
+        }
+
         // 3. Check if any enemy reached the base
         checkEnemiesReachBase();
 
@@ -357,48 +382,44 @@ public final class Game {
     }
 
     // -------------------------------------------------------------------------
-    // 1. Simple enemy spawner (Fase 6 placeholder for WaveManager)
+    // 1. Fase 7: WaveManager-spawner
     // -------------------------------------------------------------------------
 
     /*
-     * Spawns enemies at regular intervals. Alternates between types:
-     *   - Most are BasicEnemy
-     *   - Every 3rd is ArmoredEnemy
-     *   - Every 5th is FlyingEnemy
+     * Vraagt de WaveManager elke frame of er een vijand gespawnd moet worden.
+     * WaveManager.tick() geeft een Optional<String> terug met het vijandtype
+     * ("basic", "armored" of "flying"), of Optional.empty() als er dit frame
+     * niets spawnt (wachttijd binnen golf, pauze tussen golven, of klaar).
      *
-     * This will be replaced by WaveManager in Fase 7 which reads wave
-     * definitions from the level .properties file.
+     * Het juiste pad wordt meegegeven: vliegende vijanden krijgen het luchtpad
+     * als dat beschikbaar is, anders het grondpad.
      */
     private void updateSpawner(double deltaTime) {
-        if (enemiesToSpawn <= 0) return;
-
-        spawnTimer -= deltaTime;
-        if (spawnTimer <= 0) {
+        waveManager.tick(deltaTime).ifPresent(type -> {
             List<Position> groundPath = gameMap.getEnemyPath().getWaypoints();
             Enemy enemy;
 
-            // Alternate enemy types for variety
-            if (enemiesSpawned % 5 == 4) {
-                // Every 5th enemy is a FlyingEnemy
-                if (gameMap.hasFlyingPath()) {
-                    List<Position> flyingPath = gameMap.getFlyingPath().getWaypoints();
-                    enemy = entityFactory.createFlyingEnemy(flyingPath);
-                } else {
-                    enemy = entityFactory.createFlyingEnemy(groundPath);
-                }
-            } else if (enemiesSpawned % 3 == 2) {
-                // Every 3rd enemy is ArmoredEnemy
-                enemy = entityFactory.createArmoredEnemy(groundPath);
-            } else {
-                // Default: BasicEnemy
-                enemy = entityFactory.createBasicEnemy(groundPath);
+            switch (type) {
+                case "flying":
+                    // Vliegende vijanden nemen het luchtpad als dat bestaat
+                    if (gameMap.hasFlyingPath()) {
+                        enemy = entityFactory.createFlyingEnemy(
+                            gameMap.getFlyingPath().getWaypoints());
+                    } else {
+                        enemy = entityFactory.createFlyingEnemy(groundPath);
+                    }
+                    break;
+                case "armored":
+                    enemy = entityFactory.createArmoredEnemy(groundPath);
+                    break;
+                default:
+                    // "basic" en alle onbekende types → BasicEnemy
+                    enemy = entityFactory.createBasicEnemy(groundPath);
+                    break;
             }
 
             enemies.add(enemy);
-            enemiesSpawned++;
-            enemiesToSpawn--;
-            spawnTimer = SPAWN_INTERVAL;
-        }
+        });
     }
 
     // -------------------------------------------------------------------------
@@ -530,7 +551,8 @@ public final class Game {
             return;
         }
 
-        if (enemiesToSpawn <= 0 && enemies.isEmpty()) {
+        // Gewonnen als de WaveManager alle golven heeft gespawnd én er geen vijanden meer leven
+        if (waveManager.isFinished() && enemies.isEmpty()) {
             state = GameState.WON;
         }
     }
@@ -551,11 +573,10 @@ public final class Game {
         this.enemies.clear();
         this.projectiles.clear();
         this.bonuses.clear();
-        this.base           = Optional.empty();
-        this.gameMap         = null;
-        this.enemiesToSpawn  = 0;
-        this.enemiesSpawned  = 0;
-        this.spawnTimer      = 0;
+        this.base        = Optional.empty();
+        this.gameMap     = null;
+        this.waveManager = null;
+        this.luaEngine   = null;   // wordt opnieuw geladen in setupLevel()
     }
 
     // =========================================================================
@@ -581,7 +602,20 @@ public final class Game {
     public int  getGold()                    { return gold; }
     public void addGold(int amount)          { this.gold += amount; }
 
-    public int getEnemiesRemaining()         { return enemiesToSpawn; }
+    /** Aantal vijanden dat nog gespawnd wordt in de huidige golf (voor de HUD). */
+    public int getEnemiesRemaining() {
+        return waveManager != null ? waveManager.getRemainingSpawnsInCurrentWave() : 0;
+    }
+
+    /** Huidig golfnummer (1-gebaseerd, voor de HUD). */
+    public int getCurrentWave() {
+        return waveManager != null ? waveManager.getCurrentWaveNumber() : 0;
+    }
+
+    /** Totaal aantal golven in dit level (voor de HUD). */
+    public int getTotalWaves() {
+        return waveManager != null ? waveManager.getTotalWaves() : 0;
+    }
 
     public void spendGold(int amount) {
         if (amount > this.gold) {

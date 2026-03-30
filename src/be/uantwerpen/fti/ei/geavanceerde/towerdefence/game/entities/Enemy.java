@@ -200,4 +200,17 @@ public abstract class Enemy extends Entity {
     public void setSpeedMultiplier(double multiplier) {
         this.speedMultiplier = multiplier;
     }
+
+    /* Lua scripts can call this to directly set current HP (clamped 0..maxHealth). */
+    public void setCurrentHealth(double health) {
+        this.currentHealth = Math.max(0, Math.min(health, maxHealth));
+        if (this.currentHealth <= 0) alive = false;
+    }
+
+    /* Lua scripts can call this to change the maximum HP of this enemy. */
+    public void setMaxHealth(double health) {
+        this.maxHealth = Math.max(1, health);
+        // Clamp current HP in case it now exceeds the new max
+        if (currentHealth > this.maxHealth) currentHealth = this.maxHealth;
+    }
 }

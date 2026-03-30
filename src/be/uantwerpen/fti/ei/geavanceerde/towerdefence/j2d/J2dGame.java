@@ -311,9 +311,13 @@ public class J2dGame implements GameView {
             .map(b -> b.getCurrentHealth() + "/" + b.getMaxHealth())
             .orElse("?");
 
+        // Golf-info voor de HUD: toont huidige golf en totaal (bijv. "Wave 2/5")
+        String waveText = "Wave: " + game.getCurrentWave() + "/" + game.getTotalWaves();
+
         String hudText = "Gold: " + game.getGold()
             + "  Score: " + game.getScore()
             + "  HP: " + hpText
+            + "  " + waveText
             + "  Left: " + (game.getEnemiesRemaining() + game.getEnemies().size());
 
         // Show selected tower from input handler
