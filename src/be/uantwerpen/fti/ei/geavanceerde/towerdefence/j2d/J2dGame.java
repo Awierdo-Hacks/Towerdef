@@ -19,6 +19,7 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferStrategy;
+import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 
@@ -247,8 +248,8 @@ public class J2dGame implements GameView {
     // -------------------------------------------------------------------------
 
     /*
-     * Draws the tile grid. Each tile is a coloured rectangle based on its TileType.
-     * BUILD_SPOT tiles get an extra border to show they're interactive.
+     * Draws the tile grid. GRASS and BUILD_SPOT tiles use sprite images,
+     * other tile types fall back to coloured rectangles.
      */
     private void renderMap() {
         GameMap map = Game.getInstance().getGameMap();
@@ -258,31 +259,56 @@ public class J2dGame implements GameView {
         int tileW = toScreenWidth(1.0);
         int tileH = toScreenHeight(1.0);
 
+        BufferedImage floorSprite     = SpriteManager.getSprite("floor.png");
+        BufferedImage buildSpotSprite = SpriteManager.getSprite("buildspot.png");
+
         for (int x = 0; x < map.getWidth(); x++) {
             for (int y = 0; y < map.getHeight(); y++) {
                 int sx = toScreenX(x);
                 int sy = toScreenY(y);
 
-                // Choose colour by tile type
                 switch (grid[x][y].getType()) {
-                    case GRASS:      g2d.setColor(COLOR_GRASS);      break;
-                    case PATH:       g2d.setColor(COLOR_PATH);       break;
-                    case WATER:      g2d.setColor(COLOR_WATER);      break;
-                    case BUILD_SPOT: g2d.setColor(COLOR_BUILD_SPOT); break;
-                    case SPAWN:      g2d.setColor(COLOR_SPAWN);      break;
-                    case BASE:       g2d.setColor(COLOR_BASE_TILE);  break;
+                    case GRASS:
+                        if (floorSprite != null) {
+                            g2d.drawImage(floorSprite, sx, sy, tileW, tileH, null);
+                        } else {
+                            g2d.setColor(COLOR_GRASS);
+                            g2d.fillRect(sx, sy, tileW, tileH);
+                        }
+                        break;
+                    case BUILD_SPOT:
+                        // Draw floor underneath, then build spot on top
+                        if (floorSprite != null) {
+                            g2d.drawImage(floorSprite, sx, sy, tileW, tileH, null);
+                        }
+                        if (buildSpotSprite != null) {
+                            g2d.drawImage(buildSpotSprite, sx, sy, tileW, tileH, null);
+                        } else {
+                            g2d.setColor(COLOR_BUILD_SPOT);
+                            g2d.fillRect(sx, sy, tileW, tileH);
+                        }
+                        break;
+                    case PATH:
+                        g2d.setColor(COLOR_PATH);
+                        g2d.fillRect(sx, sy, tileW, tileH);
+                        break;
+                    case WATER:
+                        g2d.setColor(COLOR_WATER);
+                        g2d.fillRect(sx, sy, tileW, tileH);
+                        break;
+                    case SPAWN:
+                        g2d.setColor(COLOR_SPAWN);
+                        g2d.fillRect(sx, sy, tileW, tileH);
+                        break;
+                    case BASE:
+                        g2d.setColor(COLOR_BASE_TILE);
+                        g2d.fillRect(sx, sy, tileW, tileH);
+                        break;
                 }
-                g2d.fillRect(sx, sy, tileW, tileH);
 
                 // Subtle grid lines
                 g2d.setColor(COLOR_GRID_LINE);
                 g2d.drawRect(sx, sy, tileW, tileH);
-
-                // BUILD_SPOT gets an extra dashed border so the player can see it
-                if (grid[x][y].getType() == be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.TileType.BUILD_SPOT) {
-                    g2d.setColor(new Color(255, 255, 255, 80));
-                    g2d.drawRect(sx + 2, sy + 2, tileW - 4, tileH - 4);
-                }
             }
         }
     }
@@ -323,7 +349,7 @@ public class J2dGame implements GameView {
         // Show selected tower from input handler
         int sel = inputHandler.getSelectedTower();
         if (sel > 0) {
-            String[] names = {"", "Arrow [50g]", "Cannon [100g]", "Ice [75g]"};
+            String[] names = {"", "Raygun [50g]", "Cannon [100g]", "Ice [75g]"};
             hudText += "  Tower: " + names[sel];
         }
 

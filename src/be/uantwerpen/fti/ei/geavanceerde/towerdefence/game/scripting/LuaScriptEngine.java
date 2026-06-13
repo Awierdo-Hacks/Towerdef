@@ -7,57 +7,54 @@ import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.stream.Collectors;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /*
  * Wikkelt de LuaJ runtime voor enemy AI-scripts.
  *
- * AANPAK (gebaseerd op werkende LuaJ-voorbeeldcode):
- *   Java-objecten worden NIET direct doorgegeven aan Lua.
- *   In plaats daarvan wordt per aanroep een LuaTable aangemaakt met
- *   de relevante velden van de vijand. Lua past de tabel aan, en Java
- *   leest de gewijzigde waarden terug en past ze toe op het enemy-object.
+ * HOT-RELOAD:
+ *   Het script wordt geladen via de classpath-URL, maar het bestandspad op
+ *   schijf wordt bijgehouden. Elke CHECK_INTERVAL_MS milliseconden controleert
+ *   callUpdateEnemy() of het bestand gewijzigd is. Bij een wijziging wordt het
+ *   script opnieuw geladen zonder het spel te herstarten.
  *
- *   Dit vermijdt problemen met CoerceJavaToLua die in LuaJ 3.0.1
- *   niet betrouwbaar werkt voor methode-aanroepen op Java-objecten.
+ *   Werkt enkel als de applicatie direct vanuit het bestandssysteem draait
+ *   (IDE / loose classpath). Vanuit een JAR is hot-reload niet beschikbaar.
  *
  * DATA-UITWISSELING (Java ↔ Lua via LuaTable):
- *
- *   Java vult de tabel vóór de aanroep:
+ *   Java vult vóór de aanroep:
  *     enemy.type          (string)  → "basic", "armored", "flying"
  *     enemy.currentHealth (number)  → huidig HP
  *     enemy.maxHealth     (number)  → maximaal HP
  *     enemy.healthPercent (number)  → currentHealth / maxHealth  (0.0–1.0)
  *     enemy.speedMul      (number)  → huidige snelheidsmultiplier
  *
- *   Lua schrijft terug naar de tabel (alle andere velden worden genegeerd):
- *     enemy.currentHealth → wordt toegepast via enemy.setCurrentHealth()
- *     enemy.maxHealth     → wordt toegepast via enemy.setMaxHealth()
- *     enemy.speedMul      → wordt toegepast via enemy.setSpeedMultiplier()
- *
- * SCRIPT LADEN:
- *   Via getClass().getResourceAsStream("/" + pad), zelfde techniek als
- *   het voorbeeldproject. De leading "/" maakt het pad absoluut vanaf
- *   de classpath-root. Pad in game.properties: "scripts/enemy_ai.lua".
- *
- * FOUTAFHANDELING:
- *   Script niet gevonden / syntaxfout / runtime-fout → stderr + no-op.
- *   Het spel crasht nooit door een Lua-fout.
+ *   Lua schrijft terug (alleen deze drie worden door Java gelezen):
+ *     enemy.currentHealth → enemy.setCurrentHealth()
+ *     enemy.maxHealth     → enemy.setMaxHealth()
+ *     enemy.speedMul      → enemy.setSpeedMultiplier()
  */
 public class LuaScriptEngine {
 
-    /*
-     * De globale Lua-omgeving. Wordt éénmalig aangemaakt en hergebruikt
-     * zodat top-level state in het script (variabelen, tellers) bewaard blijft
-     * tussen frames.
-     */
-    private final Globals globals;
+    private static final long CHECK_INTERVAL_MS = 500;
 
-    /* True zodra een script succesvol geladen én uitgevoerd is. */
+    private Globals globals;
     private boolean loaded;
+
+    /* Bestandspad op schijf — null als hot-reload niet beschikbaar is. */
+    private Path scriptFile;
+
+    /* Tijdstip (ms) van de laatste bekende versie van het script. */
+    private long lastModified;
+
+    /* Tijdstip (ms) van de laatste controle op bestandswijzigingen. */
+    private long lastCheckTime;
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -73,42 +70,96 @@ public class LuaScriptEngine {
     // -------------------------------------------------------------------------
 
     /*
-     * Leest het Lua-script als tekst via de classpath (leading "/" = absoluut
-     * pad vanaf classpath-root), compileert het met globals.load(code, naam)
-     * en voert het meteen uit zodat alle functies geregistreerd worden.
+     * Bepaalt het bestandspad en laadt het script.
+     *
+     * HOT-RELOAD STRATEGIE:
+     *   1. Probeer eerst het bronbestand via de werkdirectory:
+     *        resources/<resourcePath>
+     *      Dit werkt wanneer de applicatie vanuit de projectroot draait (IntelliJ /
+     *      command-line). Bewerkingen aan het bronbestand worden dan direct opgepikt
+     *      door checkForChanges() — zonder rebuild.
+     *
+     *   2. Als het bronbestand niet gevonden wordt, val dan terug op de
+     *      classpath-URL. Hot-reload werkt dan alleen als de URL naar een
+     *      los bestand wijst (geen JAR-entry).
      *
      * @param resourcePath pad relatief aan classpath-root, bijv. "scripts/enemy_ai.lua"
      */
     public void loadScript(String resourcePath) {
-        // Zelfde aanpak als ConfigManager: getClassLoader().getResourceAsStream()
-        // zonder leading slash, pad relatief aan classpath-root.
-        // Werkt zodra "resources" in java.project.sourcePaths staat (settings.json).
-        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
-
-        if (inputStream == null) {
-            System.err.println("[LuaScriptEngine] Script niet gevonden op classpath: /" + resourcePath);
+        // 1. Bronbestand via werkdirectory — werkt in IDE zonder rebuild
+        Path devPath = Paths.get("resources").resolve(resourcePath);
+        if (Files.exists(devPath)) {
+            scriptFile = devPath.toAbsolutePath();
+            reloadScript();
             return;
         }
 
-        try {
-            // Script inlezen als één string — zelfde aanpak als voorbeeldcode
-            String luaCode = new BufferedReader(new InputStreamReader(inputStream))
-                    .lines()
-                    .collect(Collectors.joining("\n"));
+        // 2. Terugval op classpath-URL (gekopieerd uitvoerpad of JAR)
+        URL url = getClass().getClassLoader().getResource(resourcePath);
+        if (url == null) {
+            System.err.println("[LuaScriptEngine] Script niet gevonden: " + resourcePath);
+            return;
+        }
 
-            // Compileren en uitvoeren: registreert alle top-level functies in globals
-            LuaValue chunk = globals.load(luaCode, resourcePath);
+        if ("file".equals(url.getProtocol())) {
+            try {
+                scriptFile = Paths.get(url.toURI());
+            } catch (URISyntaxException e) {
+                System.err.println("[LuaScriptEngine] Kan bestandspad niet bepalen: " + e.getMessage());
+            }
+        } else {
+            System.out.println("[LuaScriptEngine] Hot-reload niet beschikbaar (JAR-modus).");
+        }
+
+        reloadScript();
+    }
+
+    // -------------------------------------------------------------------------
+    // Intern: script (her)laden
+    // -------------------------------------------------------------------------
+
+    private void reloadScript() {
+        if (scriptFile == null) return;
+
+        try {
+            // Nieuwe globals zodat oude state (tellers, functies) gewist wordt
+            this.globals = JsePlatform.standardGlobals();
+
+            LuaValue chunk = globals.load(new FileReader(scriptFile.toFile()), scriptFile.getFileName().toString());
             chunk.call();
 
+            lastModified = Files.getLastModifiedTime(scriptFile).toMillis();
             loaded = true;
-            System.out.println("[LuaScriptEngine] Script geladen: " + resourcePath);
+            System.out.println("[LuaScriptEngine] Script geladen: " + scriptFile.getFileName());
 
         } catch (LuaError e) {
-            System.err.println("[LuaScriptEngine] Lua-fout bij laden van "
-                    + resourcePath + ": " + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("[LuaScriptEngine] Fout bij lezen script "
-                    + resourcePath + ": " + e.getMessage());
+            System.err.println("[LuaScriptEngine] Lua-fout: " + e.getMessage());
+            loaded = false;
+        } catch (IOException e) {
+            System.err.println("[LuaScriptEngine] Leesfout: " + e.getMessage());
+            loaded = false;
+        }
+    }
+
+    /*
+     * Controleert of het scriptbestand gewijzigd is. Wordt maximaal
+     * één keer per CHECK_INTERVAL_MS uitgevoerd om I/O te beperken.
+     */
+    private void checkForChanges() {
+        if (scriptFile == null) return;
+
+        long now = System.currentTimeMillis();
+        if (now - lastCheckTime < CHECK_INTERVAL_MS) return;
+        lastCheckTime = now;
+
+        try {
+            long currentModified = Files.getLastModifiedTime(scriptFile).toMillis();
+            if (currentModified != lastModified) {
+                System.out.println("[LuaScriptEngine] Wijziging gedetecteerd — script herladen...");
+                reloadScript();
+            }
+        } catch (IOException ignored) {
+            // Bestand tijdelijk niet leesbaar (bijv. editor schrijft nog) — volgende check
         }
     }
 
@@ -117,30 +168,18 @@ public class LuaScriptEngine {
     // -------------------------------------------------------------------------
 
     /*
-     * Roept de Lua-functie "updateEnemy(enemyTable, deltaTime)" aan.
-     *
-     * STAP 1 — LuaTable vullen met de huidige enemy-staat:
-     *   Alle relevante velden worden als Lua-nummers/strings ingevuld.
-     *   Lua leest velden met punt-notatie: enemy.type, enemy.currentHealth, ...
-     *
-     * STAP 2 — Lua-functie aanroepen:
-     *   globals.get("updateEnemy").call(enemyTable, deltaTime)
-     *
-     * STAP 3 — Gewijzigde waarden terugschrijven naar Java:
-     *   Na de aanroep worden currentHealth, maxHealth en speedMul uit de
-     *   tabel gelezen. Alleen waarden die daadwerkelijk veranderd zijn
-     *   worden toegepast op het enemy-object.
-     *
-     * @param enemy     het vijand-object dat geüpdated wordt
-     * @param deltaTime verstreken tijd in seconden
+     * Controleert eerst op bestandswijzigingen, dan roept het de Lua-functie
+     * "updateEnemy(enemyTable, deltaTime)" aan en schrijft gewijzigde waarden
+     * terug naar het enemy-object.
      */
     public void callUpdateEnemy(Enemy enemy, double deltaTime) {
+        checkForChanges();
         if (!loaded) return;
 
         LuaValue func = globals.get("updateEnemy");
         if (func.isnil()) return;
 
-        // --- Stap 1: LuaTable vullen met enemy-data ---
+        // Tabel vullen
         LuaTable enemyTable = new LuaTable();
         enemyTable.set("type",          LuaValue.valueOf(enemy.getType()));
         enemyTable.set("currentHealth", LuaValue.valueOf(enemy.getCurrentHealth()));
@@ -148,7 +187,7 @@ public class LuaScriptEngine {
         enemyTable.set("healthPercent", LuaValue.valueOf(enemy.getHealthPercent()));
         enemyTable.set("speedMul",      LuaValue.valueOf(enemy.getSpeedMultiplier()));
 
-        // --- Stap 2: Lua aanroepen ---
+        // Lua aanroepen
         try {
             func.call(enemyTable, LuaValue.valueOf(deltaTime));
         } catch (LuaError e) {
@@ -159,22 +198,15 @@ public class LuaScriptEngine {
             return;
         }
 
-        // --- Stap 3: gewijzigde waarden terugschrijven naar Java ---
-
+        // Gewijzigde waarden terugschrijven
         double newMaxHealth = enemyTable.get("maxHealth").todouble();
-        if (newMaxHealth != enemy.getMaxHealth()) {
-            enemy.setMaxHealth(newMaxHealth);
-        }
+        if (newMaxHealth != enemy.getMaxHealth()) enemy.setMaxHealth(newMaxHealth);
 
         double newCurrentHealth = enemyTable.get("currentHealth").todouble();
-        if (newCurrentHealth != enemy.getCurrentHealth()) {
-            enemy.setCurrentHealth(newCurrentHealth);
-        }
+        if (newCurrentHealth != enemy.getCurrentHealth()) enemy.setCurrentHealth(newCurrentHealth);
 
         double newSpeedMul = enemyTable.get("speedMul").todouble();
-        if (newSpeedMul != enemy.getSpeedMultiplier()) {
-            enemy.setSpeedMultiplier(newSpeedMul);
-        }
+        if (newSpeedMul != enemy.getSpeedMultiplier()) enemy.setSpeedMultiplier(newSpeedMul);
     }
 
     // -------------------------------------------------------------------------

@@ -3,30 +3,31 @@ package be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.CannonTower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.J2dGame;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.SpriteManager;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 
 /*
  * Concrete CannonTower with Java2D rendering.
  *
- * Drawn as a dark gray square with a cannon barrel (thick line).
- * Larger than the ArrowTower to show it's heavier and more expensive.
- *
- * Uses default stats from CannonTower including splash damage.
+ * Uses the tower_cannon.png sprite. Falls back to a gray rectangle
+ * if the sprite cannot be loaded.
  */
 public class J2dCannonTower extends CannonTower {
 
-    private static final Color FILL   = new Color(105, 105, 105);  // dim gray
-    private static final Color BORDER = new Color(50, 50, 50);     // darker gray
-    private static final Color BARREL = new Color(30, 30, 30);     // near-black barrel
+    private static final Color FILL   = new Color(105, 105, 105);
+    private static final Color BORDER = new Color(50, 50, 50);
 
     private final J2dGame j2dGame;
+    private final BufferedImage sprite;
 
     public J2dCannonTower(Position position, J2dGame j2dGame) {
         super(position, DEFAULT_RANGE, DEFAULT_DAMAGE, DEFAULT_FIRE_RATE, DEFAULT_COST,
               DEFAULT_SPLASH_RADIUS, DEFAULT_SPLASH_DAMAGE_FRACTION);
         this.j2dGame = j2dGame;
+        this.sprite  = SpriteManager.getSprite("tower_cannon.png");
     }
 
     @Override
@@ -39,16 +40,13 @@ public class J2dCannonTower extends CannonTower {
         int sw = j2dGame.toScreenWidth(width);
         int sh = j2dGame.toScreenHeight(height);
 
-        // Tower body
-        g.setColor(FILL);
-        g.fillRect(sx, sy, sw, sh);
-        g.setColor(BORDER);
-        g.drawRect(sx, sy, sw, sh);
-
-        // Cannon barrel — thick line sticking out to the right
-        int cx = sx + sw / 2;
-        int cy = sy + sh / 2;
-        g.setColor(BARREL);
-        g.fillRect(cx, cy - sh / 6, sw / 2 + 4, sh / 3);
+        if (sprite != null) {
+            g.drawImage(sprite, sx, sy, sw, sh, null);
+        } else {
+            g.setColor(FILL);
+            g.fillRect(sx, sy, sw, sh);
+            g.setColor(BORDER);
+            g.drawRect(sx, sy, sw, sh);
+        }
     }
 }
