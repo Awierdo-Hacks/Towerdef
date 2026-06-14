@@ -105,11 +105,4 @@ public abstract class IceTower extends Tower {
     public boolean isReadyToFire() {
         return false;  // IceTower does not use the projectile system
     }
-
-    // -------------------------------------------------------------------------
-    // Getters
-    // -------------------------------------------------------------------------
-
-    public double getSlowFactor()   { return slowFactor; }
-    public double getSlowDuration() { return slowDuration; }
 }

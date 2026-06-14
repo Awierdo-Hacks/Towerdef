@@ -83,19 +83,6 @@ public class Position {
     }
 
     /**
-     * Returns a new Position shifted by the given amounts.
-     *
-     * <p>Does not modify this position — returns a new instance.</p>
-     *
-     * @param dx amount to shift horizontally
-     * @param dy amount to shift vertically
-     * @return a new Position at (x + dx, y + dy)
-     */
-    public Position translate(double dx, double dy) {
-        return new Position(this.x + dx, this.y + dy);
-    }
-
-    /**
      * Returns a string representation for debugging purposes.
      *
      * @return formatted string like "(3.50, 7.00)"

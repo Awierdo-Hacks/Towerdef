@@ -43,27 +43,4 @@ public class Path {
     public List<Position> getWaypoints() {
         return Collections.unmodifiableList(waypoints);
     }
-
-    /* First waypoint — where enemies spawn. */
-    public Position getStartPosition() {
-        return waypoints.get(0);
-    }
-
-    /* Last waypoint — the base the enemies are walking toward. */
-    public Position getEndPosition() {
-        return waypoints.get(waypoints.size() - 1);
-    }
-
-    public int getWaypointCount() {
-        return waypoints.size();
-    }
-
-    public boolean isEmpty() {
-        return waypoints.isEmpty();
-    }
-
-    @Override
-    public String toString() {
-        return "Path[" + waypoints.size() + " waypoints]";
-    }
 }

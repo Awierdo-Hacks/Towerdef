@@ -208,13 +208,4 @@ public class LuaScriptEngine {
         double newSpeedMul = enemyTable.get("speedMul").todouble();
         if (newSpeedMul != enemy.getSpeedMultiplier()) enemy.setSpeedMultiplier(newSpeedMul);
     }
-
-    // -------------------------------------------------------------------------
-    // Queries
-    // -------------------------------------------------------------------------
-
-    /** True als een script succesvol geladen is. */
-    public boolean isLoaded() {
-        return loaded;
-    }
 }

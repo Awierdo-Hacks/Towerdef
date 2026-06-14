@@ -72,6 +72,4 @@ public abstract class ArmoredEnemy extends Enemy {
     public String getType() {
         return "armored";
     }
-
-    public double getDamageResistance() { return damageResistance; }
 }

@@ -289,7 +289,7 @@ geen kwaad. Doe dit in één aparte opruim-commit zodat de diff klein en reviewb
 4. ✅ **Stopwatch.reset()**: verwijderd (incl. comment).
 5. ✅ **IceTower.findTarget()**: behouden, body vereenvoudigd tot `Optional.empty()` +
    comment bijgewerkt; ongebruikte `Comparator`-import verwijderd.
-6. ⬜ **Sectie C**: later, in één losse opruim-commit.
+6. ✅ **Sectie C**: uitgevoerd (zie detail hieronder).
 
 ## Uitgevoerd op 2026-06-13 — detail
 
@@ -313,6 +313,46 @@ geen kwaad. Doe dit in één aparte opruim-commit zodat de diff klein en reviewb
 
 **Validatie:** volledige `javac`-build van `src/` met `luaj-jse-3.0.1.jar` op de classpath
 slaagt zonder fouten.
+
+## Uitgevoerd op 2026-06-14 — sectie C detail
+
+**Verwijderd (ongebruikte methodes):**
+- `Tower`: `getRange`, `getFireRate`, `getCost`
+- `Projectile`: `getSpeed`, `getTargetPosition`, `hasReachedTarget` (`getDamage` blijft —
+  sinds B1 gebruikt door `CannonProjectile`)
+- `IceTower`: `getSlowFactor`, `getSlowDuration`
+- `ArmoredEnemy`: `getDamageResistance`
+- `Enemy`: `getSpeed` — **verweesd door B3** (was gebruikt door de oude
+  `IceTower.findTarget`); meegenomen als logisch gevolg
+- `GameMap`: `getSpawnPoint`, `getBuildSpots` (+ ongebruikte `Collections`-import)
+- `Tile`: `isWalkable`, `getPosition`, `toString`
+- `Path`: `getStartPosition`, `getEndPosition`, `getWaypointCount`, `isEmpty`, `toString`
+- `Game`: `getEntityFactory`, `setBase`, `addScore`
+- `LuaScriptEngine`: `isLoaded`
+- `Position`: `translate`
+- `InputHandler`: `isKeyDown` + de `keys[]`-array (+ schrijfacties in `keyPressed`/`keyReleased`),
+  `getMouseScreenX`, `getMouseScreenY`, `setSelectedTower`
+- `J2dGame`: `getInputHandler`, `getCanvas`, `getFrame`, `getWindowWidth`, `getWindowHeight`,
+  `getGameWidth`, `getGameHeight`
+
+**Bewust behouden (jouw keuze — verdedigbaar):**
+- `ConfigManager.getBoolean()` — symmetrische config-API (config is een verplichte richtlijn)
+- `WaveManager.getTimeUntilNextWave`, `WaveManager.getWaves`, `Wave.getTotalEnemies`,
+  `Wave.getSpawnQueue` — bruikbaar voor een latere HUD-aftelteller of unit tests
+
+**Bewust NIET aangeraakt (buiten scope sectie C — optionele vervolgstap):**
+Door het schrappen van enkel de getters zijn twee private velden nu "alleen-schrijven":
+- `Tile.position` (+ `Position`-parameter in de constructor) — verwijderen raakt ook de
+  `new Tile(...)`-aanroep in `GameMap.initializeGrid()`.
+- `Tower.cost` — verwijderen raakt de constructor + alle `super(...)`-aanroepen in elke
+  tower-subklasse.
+
+Beide compileren probleemloos maar zijn dode toestand; laat maar weten als je ze ook wil
+opruimen.
+
+**Validatie:** volledige `javac -Xlint:all`-build van `src/` met `luaj-jse-3.0.1.jar` slaagt.
+De 4 resterende waarschuwingen zijn pre-existing `this-escape`-meldingen in `GameMap` en
+`J2dGame` (constructors die methodes/`this` gebruiken) — niet door deze opschoning veroorzaakt.
 
 ## Stemt deze analyse overeen met de richtlijnen?
 

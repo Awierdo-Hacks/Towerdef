@@ -89,8 +89,6 @@ public final class Game {
     private GameView view;
     private ConfigManager config;
 
-    public EntityFactory getEntityFactory() { return entityFactory; }
-
     // -------------------------------------------------------------------------
     // Fase 7: WaveManager — beheert alle golven voor het huidige level
     // -------------------------------------------------------------------------
@@ -575,7 +573,6 @@ public final class Game {
     public List<Projectile> getProjectiles() { return projectiles; }
 
     public Optional<Base> getBase()          { return base; }
-    public void setBase(Base base)           { this.base = Optional.of(base); }
 
     public GameMap getGameMap()              { return gameMap; }
 
@@ -583,7 +580,6 @@ public final class Game {
     public void      setState(GameState s)   { this.state = s; }
 
     public int  getScore()                   { return score; }
-    public void addScore(int points)         { this.score += points; }
 
     public int  getGold()                    { return gold; }
 

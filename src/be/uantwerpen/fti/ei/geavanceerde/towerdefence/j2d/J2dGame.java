@@ -395,8 +395,6 @@ public class J2dGame implements GameView {
      * Only valid during a render() call — J2d entities use this in their render().
      */
     public Graphics2D getGraphics2D()  { return g2d; }
-    public InputHandler getInputHandler() { return inputHandler; }
-    public Canvas getCanvas()          { return canvas; }
 
     // -------------------------------------------------------------------------
     // GameView interface — delegates input queries to InputHandler
@@ -417,9 +415,4 @@ public class J2dGame implements GameView {
 
     @Override
     public int getSelectedTower()     { return inputHandler.getSelectedTower(); }
-    public JFrame getFrame()           { return frame; }
-    public int getWindowWidth()        { return windowWidth; }
-    public int getWindowHeight()       { return windowHeight; }
-    public double getGameWidth()       { return gameWidth; }
-    public double getGameHeight()      { return gameHeight; }
 }

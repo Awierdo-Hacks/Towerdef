@@ -126,10 +126,7 @@ public abstract class Tower extends Entity {
     // Getters
     // -------------------------------------------------------------------------
 
-    public double  getRange()        { return range; }
     public int     getDamage()       { return damage; }
-    public double  getFireRate()     { return fireRate; }
-    public int     getCost()         { return cost; }
 
     /* Returns true when the tower is allowed to fire (cooldown expired). */
     public boolean isReadyToFire()   { return fireCooldown <= 0; }

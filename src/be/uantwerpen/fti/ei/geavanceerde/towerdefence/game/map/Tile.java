@@ -33,16 +33,6 @@ public class Tile {
     // -------------------------------------------------------------------------
 
     /*
-     * Enemies can walk on PATH, SPAWN and BASE tiles.
-     * GRASS, WATER and BUILD_SPOT block ground movement.
-     */
-    public boolean isWalkable() {
-        return type == TileType.PATH
-            || type == TileType.SPAWN
-            || type == TileType.BASE;
-    }
-
-    /*
      * Towers can only be placed on BUILD_SPOT tiles.
      * Once a tower occupies the spot the game loop should prevent placing another.
      */
@@ -55,13 +45,7 @@ public class Tile {
     // -------------------------------------------------------------------------
 
     public TileType getType()     { return type; }
-    public Position getPosition() { return position; }
 
     /* Allows GameMap to change a tile's type after initial grid creation. */
     public void setType(TileType type) { this.type = type; }
-
-    @Override
-    public String toString() {
-        return "Tile[" + type + " at " + position + "]";
-    }
 }

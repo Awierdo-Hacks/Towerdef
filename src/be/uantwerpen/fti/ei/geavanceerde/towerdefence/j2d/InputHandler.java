@@ -32,9 +32,6 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
     // Key state
     // -------------------------------------------------------------------------
 
-    // Tracks which keys are currently held down
-    private boolean[] keys = new boolean[256];
-
     // Single-press flags — set on keyPressed, consumed when read
     private boolean pausePressed;
 
@@ -71,9 +68,6 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
     @Override
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
-        if (code >= 0 && code < keys.length) {
-            keys[code] = true;
-        }
 
         // Tower selection (number keys)
         switch (code) {
@@ -87,10 +81,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 
     @Override
     public void keyReleased(KeyEvent e) {
-        int code = e.getKeyCode();
-        if (code >= 0 && code < keys.length) {
-            keys[code] = false;
-        }
+        // not used — keyPressed handles single-press flags and tower selection
     }
 
     @Override
@@ -136,12 +127,6 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
     // Getters — called by the game loop each frame
     // -------------------------------------------------------------------------
 
-    /* True if a key is currently held down. */
-    public boolean isKeyDown(int keyCode) {
-        if (keyCode < 0 || keyCode >= keys.length) return false;
-        return keys[keyCode];
-    }
-
     /*
      * Returns true once after the player clicks, then resets to false.
      * The game loop calls this to detect a single click event.
@@ -166,15 +151,10 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
         return false;
     }
 
-    /* Mouse position in screen pixels. */
-    public int getMouseScreenX() { return mouseScreenX; }
-    public int getMouseScreenY() { return mouseScreenY; }
-
     /* Mouse position converted to game-world coordinates. */
     public double getMouseGameX() { return j2dGame.toGameX(mouseScreenX); }
     public double getMouseGameY() { return j2dGame.toGameY(mouseScreenY); }
 
     /* Currently selected tower type: 0=none, 1=Arrow, 2=Cannon, 3=Ice. */
     public int getSelectedTower()             { return selectedTower; }
-    public void setSelectedTower(int tower)   { this.selectedTower = tower; }
 }

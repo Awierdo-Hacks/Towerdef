@@ -191,7 +191,6 @@ public abstract class Enemy extends Entity {
 
     public double getCurrentHealth()  { return currentHealth; }
     public double getMaxHealth()      { return maxHealth; }
-    public double getSpeed()          { return speed; }
     public double getSpeedMultiplier(){ return speedMultiplier; }
     public int    getReward()         { return reward; }
     public int    getScoreValue()     { return scoreValue; }

@@ -4,7 +4,6 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.ConfigManager;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /*
@@ -331,11 +330,5 @@ public class GameMap {
     public Path        getEnemyPath()    { return enemyPath; }
     public Path        getFlyingPath()   { return flyingPath; }
     public boolean     hasFlyingPath()   { return flyingPath != null; }
-    public Position    getSpawnPoint()   { return spawnPoint; }
     public Position    getBasePosition() { return basePosition; }
-
-    /* Returns an unmodifiable view of the build spots list. */
-    public List<Position> getBuildSpots() {
-        return Collections.unmodifiableList(buildSpots);
-    }
 }

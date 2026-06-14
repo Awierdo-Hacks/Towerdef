@@ -13,7 +13,7 @@ import java.util.List;
  *   2. The game loop checks collision with enemies.
  *   3. On hit: enemy.takeDamage(damage) is called and the projectile is destroyed.
  *   4. If the projectile travels past its target without hitting anything it is
- *      also destroyed (hasReachedTarget() returns true).
+ *      also destroyed (alive becomes false in update()).
  *
  * Projectiles target a fixed position in the world (not a moving entity reference).
  * This avoids holding a direct reference to an enemy that might die mid-flight,
@@ -100,9 +100,4 @@ public abstract class Projectile extends Entity {
     // -------------------------------------------------------------------------
 
     public int      getDamage()        { return damage; }
-    public double   getSpeed()         { return speed; }
-    public Position getTargetPosition(){ return targetPosition; }
-
-    /* True when the projectile has reached its destination (set in update). */
-    public boolean hasReachedTarget()  { return !alive; }
 }
