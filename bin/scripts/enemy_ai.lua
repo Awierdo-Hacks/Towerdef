@@ -27,7 +27,7 @@ local BASE_SPEED = {
 
 -- Rage-modus: onder deze HP-drempel wordt de vijand sneller
 local RAGE_HP_THRESHOLD = 0.3    -- 30% HP resterend
-local RAGE_SPEED_BONUS  = 10    -- +50% snelheid op basissnelheid
+local RAGE_SPEED_BONUS  = 0.2    -- +50% snelheid op basissnelheid
 
 -- =============================================================================
 -- Hoofd-functie — elke frame aangeroepen voor elke levende vijand
