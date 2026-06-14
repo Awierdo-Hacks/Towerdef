@@ -13,6 +13,8 @@ import java.awt.event.MouseMotionListener;
  *   1 / 2 / 3  — select tower type (Arrow / Cannon / Ice)
  *   Escape      — deselect tower
  *   P           — toggle pause
+ *   S           — start / confirm (menu, next level, play again)
+ *   Q           — quit (menu, end screens)
  *
  * MOUSE:
  *   Left click  — place the selected tower at the clicked map position
@@ -34,6 +36,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
 
     // Single-press flags — set on keyPressed, consumed when read
     private boolean pausePressed;
+    private boolean startPressed;   // S — start / confirm
+    private boolean quitPressed;    // Q — quit
 
     // -------------------------------------------------------------------------
     // Mouse state
@@ -76,6 +80,8 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
             case KeyEvent.VK_3: selectedTower = 3; break;  // Ice
             case KeyEvent.VK_ESCAPE: selectedTower = 0; break;  // Deselect
             case KeyEvent.VK_P: pausePressed = true; break;
+            case KeyEvent.VK_S: startPressed = true; break;
+            case KeyEvent.VK_Q: quitPressed  = true; break;
         }
     }
 
@@ -146,6 +152,24 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
     public boolean wasPausePressed() {
         if (pausePressed) {
             pausePressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Returns true once after the player presses S, then resets. */
+    public boolean wasStartPressed() {
+        if (startPressed) {
+            startPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Returns true once after the player presses Q, then resets. */
+    public boolean wasQuitPressed() {
+        if (quitPressed) {
+            quitPressed = false;
             return true;
         }
         return false;

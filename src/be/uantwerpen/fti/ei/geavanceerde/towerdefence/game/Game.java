@@ -70,6 +70,12 @@ public final class Game {
     private int score;
     private int gold;
 
+    // Current level (1-based) and the total number of levels (from config).
+    // Used for level progression and the WON-screen branching (level complete
+    // vs. ultimate victory).
+    private int currentLevel;
+    private int maxLevels;
+
     // -------------------------------------------------------------------------
     // Entity lists
     // -------------------------------------------------------------------------
@@ -161,7 +167,8 @@ public final class Game {
      *
      * 1. Stores the factory and config
      * 2. Gets the GameView from the factory (render + input)
-     * 3. Loads the selected level and creates the base
+     * 3. Shows the title screen (MENU); a level is only loaded once the player
+     *    presses S — see handleInput()
      * 4. Runs the game loop: input → update → render → sleep
      *
      * The factory provides both entity creation AND the visualization layer
@@ -172,8 +179,10 @@ public final class Game {
         this.config        = config;
         this.view          = factory.getView();
 
-        // Load the level and create the base
-        setupLevel();
+        // Level count + starting level come from config; show the title screen first.
+        this.maxLevels    = config.getInt("levels.count", 2);
+        this.currentLevel = config.getInt("selected.level", 1);
+        this.state        = GameState.MENU;
 
         // Game loop — runs until the window is closed
         Stopwatch stopwatch = new Stopwatch();
@@ -201,22 +210,23 @@ public final class Game {
     }
 
     // -------------------------------------------------------------------------
-    // Level setup — used by start() and restartGame()
+    // Level setup / progression
     // -------------------------------------------------------------------------
 
     /*
-     * Loads the selected level from config, creates the map and base,
-     * sets starting resources, and begins enemy spawning.
+     * Loads the given level: builds the map and base, resets per-level resources
+     * (gold back to starting.gold) and starts spawning. Does NOT touch score —
+     * the score is cumulative across levels and is only reset in startNewGame().
      */
-    private void setupLevel() {
-        // Load the level file
-        int level = config.getInt("selected.level", 1);
+    private void loadLevel(int level) {
+        this.currentLevel = level;
+
         ConfigManager levelConfig = new ConfigManager("levels/level" + level + ".properties");
         this.gameMap = new GameMap(levelConfig);
 
-        // Set starting resources
-        this.gold  = config.getInt("starting.gold", 200);
-        this.score = 0;
+        // Fresh per-level state (entities + gold), score is preserved
+        clearEntities();
+        this.gold = config.getInt("starting.gold", 200);
 
         // Create the base at the centre of the base tile
         int startingLives = config.getInt("starting.lives", 20);
@@ -241,37 +251,108 @@ public final class Game {
         this.state = GameState.PLAYING;
     }
 
+    /*
+     * Starts a brand-new game from the configured starting level.
+     * Used from the MENU ("press S"), after GAME_OVER, and after the final
+     * victory ("play again"). Resets the cumulative score to 0.
+     */
+    private void startNewGame() {
+        this.score = 0;
+        loadLevel(config.getInt("selected.level", 1));
+    }
+
+    /* Advances to the next level, keeping the cumulative score. */
+    private void nextLevel() {
+        loadLevel(currentLevel + 1);
+    }
+
+    /* Clears all per-game entity collections (towers, enemies, projectiles, ECS text). */
+    private void clearEntities() {
+        this.towers.clear();
+        this.enemies.clear();
+        this.projectiles.clear();
+        this.floatingText.clear();
+    }
+
+    /* Ends the application (java.lang only — no visualization dependency). */
+    private void quit() {
+        System.exit(0);
+    }
+
     // -------------------------------------------------------------------------
     // Input handling — called once per frame
     // -------------------------------------------------------------------------
 
     /*
-     * Processes player input from the GameView:
-     *   - P key: toggle pause / unpause
-     *   - Mouse click + tower selected: place a tower if affordable and buildable
-     *   - Click after GAME_OVER or WON: restart the game
+     * Processes player input from the GameView, branching on the current state:
+     *   - MENU       : S starts a new game, Q quits
+     *   - PLAYING    : P pauses, mouse places towers
+     *   - PAUSED     : P resumes, Q quits
+     *   - WON        : S continues (next level or play-again), Q quits
+     *   - GAME_OVER  : S restarts, Q quits
      */
     private void handleInput() {
-        // Pause toggle
-        if (view.wasPausePressed()) {
-            if (state == GameState.PLAYING) {
-                state = GameState.PAUSED;
-            } else if (state == GameState.PAUSED) {
-                state = GameState.PLAYING;
-            }
+        switch (state) {
+            case MENU:
+                if (view.wasStartPressed())      startNewGame();
+                else if (view.wasQuitPressed())  quit();
+                return;
+
+            case WON:
+                if (view.wasStartPressed())      { if (isLastLevel()) startNewGame(); else nextLevel(); }
+                else if (view.wasQuitPressed())  quit();
+                return;
+
+            case GAME_OVER:
+                if (view.wasStartPressed())      startNewGame();
+                else if (view.wasQuitPressed())  quit();
+                return;
+
+            case PLAYING:
+                handlePlayInput();
+                return;
+
+            case PAUSED:
+                handlePauseInput();
+                return;
+
+            default:
+                return;
         }
+    }
+
+    /*
+     * Input while PAUSED: P resumes the game, Q quits. A stray S is drained so it
+     * cannot leak into a later WON / GAME_OVER screen.
+     */
+    private void handlePauseInput() {
+        if (view.wasPausePressed()) {
+            state = GameState.PLAYING;   // resume
+        } else if (view.wasQuitPressed()) {
+            quit();
+        }
+        view.wasStartPressed();   // drain
+    }
+
+    /*
+     * Input while PLAYING: P pauses, mouse places towers.
+     */
+    private void handlePlayInput() {
+        // Pause
+        if (view.wasPausePressed()) {
+            state = GameState.PAUSED;
+        }
+
+        // Drain start/quit so a stray S/Q during play doesn't leak into the next
+        // WON / GAME_OVER screen and skip it.
+        view.wasStartPressed();
+        view.wasQuitPressed();
+
+        // No tower placement on the frame we just paused
+        if (state != GameState.PLAYING) return;
 
         // Mouse click
         if (!view.wasMouseClicked()) return;
-
-        // If the game is over or won, a click restarts
-        if (state == GameState.GAME_OVER || state == GameState.WON) {
-            restartGame();
-            return;
-        }
-
-        // Only allow tower placement while playing
-        if (state != GameState.PLAYING) return;
 
         // Tower placement
         int towerType = view.getSelectedTower();
@@ -320,19 +401,6 @@ public final class Game {
         // Deduct gold and add the tower to the game
         spendGold(cost);
         towers.add(tower);
-    }
-
-    // -------------------------------------------------------------------------
-    // Restart — resets and reloads the level
-    // -------------------------------------------------------------------------
-
-    /*
-     * Called when the player clicks after GAME_OVER or WON.
-     * Clears all state and reloads the current level.
-     */
-    private void restartGame() {
-        reset();
-        setupLevel();
     }
 
     // =========================================================================
@@ -581,28 +649,6 @@ public final class Game {
     }
 
     // =========================================================================
-    // Reset
-    // =========================================================================
-
-    /*
-     * Resets everything for a new game or level restart.
-     * Clears all entities, zeroes stats, returns to MENU.
-     */
-    public void reset() {
-        this.score = 0;
-        this.gold  = 0;
-        this.state = GameState.MENU;
-        this.towers.clear();
-        this.enemies.clear();
-        this.projectiles.clear();
-        this.base        = Optional.empty();
-        this.gameMap     = null;
-        this.waveManager = null;
-        this.luaEngine   = null;   // wordt opnieuw geladen in setupLevel()
-        this.floatingText.clear();
-    }
-
-    // =========================================================================
     // Getters / entity access
     // =========================================================================
 
@@ -628,6 +674,15 @@ public final class Game {
     public int getEnemiesRemaining() {
         return waveManager != null ? waveManager.getRemainingSpawnsInCurrentWave() : 0;
     }
+
+    /** Huidig levelnummer (1-gebaseerd, voor de HUD). */
+    public int getCurrentLevel() { return currentLevel; }
+
+    /** Totaal aantal levels (voor de HUD en de WON-schermkeuze). */
+    public int getMaxLevels() { return maxLevels; }
+
+    /** True als het huidige level het laatste is (→ Ultimate Victory i.p.v. level complete). */
+    public boolean isLastLevel() { return currentLevel >= maxLevels; }
 
     /** Huidig golfnummer (1-gebaseerd, voor de HUD). */
     public int getCurrentWave() {

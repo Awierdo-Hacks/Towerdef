@@ -101,7 +101,7 @@ public class J2dGame implements GameView {
     private static final Font  FONT_HUD       = new Font("Monospaced", Font.BOLD, 16);
 
     // Overlay for game-over / victory screens
-    private static final Color  COLOR_OVERLAY   = new Color(0, 0, 0, 180);
+    private static final Color  COLOR_OVERLAY   = new Color(0, 0, 0, 255);
     private static final Font   FONT_OVERLAY    = new Font("SansSerif", Font.BOLD, 48);
     private static final Font   FONT_SUB        = new Font("SansSerif", Font.PLAIN, 20);
 
@@ -212,6 +212,12 @@ public class J2dGame implements GameView {
             // 1. Clear screen with grass colour as fallback
             g2d.setColor(COLOR_GRASS);
             g2d.fillRect(0, 0, windowWidth, windowHeight);
+
+            // Title screen: no map/entities/HUD yet — just the menu, then done.
+            if (Game.getInstance().getState() == GameState.MENU) {
+                renderMenu();
+                return;
+            }
 
             // 2. Draw the tile grid
             renderMap();
@@ -385,12 +391,14 @@ public class J2dGame implements GameView {
             .map(b -> b.getCurrentHealth() + "/" + b.getMaxHealth())
             .orElse("?");
 
-        // Golf-info voor de HUD: toont huidige golf en totaal (bijv. "Wave 2/5")
-        String waveText = "Wave: " + game.getCurrentWave() + "/" + game.getTotalWaves();
+        // Level- en golf-info voor de HUD (bijv. "Level 1/2", "Wave 2/5")
+        String levelText = "Level: " + game.getCurrentLevel() + "/" + game.getMaxLevels();
+        String waveText  = "Wave: "  + game.getCurrentWave()  + "/" + game.getTotalWaves();
 
         String hudText = "Gold: " + game.getGold()
             + "  Score: " + game.getScore()
             + "  HP: " + hpText
+            + "  " + levelText
             + "  " + waveText
             + "  Left: " + (game.getEnemiesRemaining() + game.getEnemies().size());
 
@@ -401,28 +409,36 @@ public class J2dGame implements GameView {
             hudText += "  Tower: " + names[sel];
         }
 
-        // Show PAUSED indicator
-        if (game.getState() == GameState.PAUSED) {
-            hudText += "  [PAUSED]";
-        }
-
         g2d.drawString(hudText, 10, 22);
 
-        // --- Full-screen overlay for GAME_OVER or WON ---
-        if (game.getState() == GameState.GAME_OVER) {
-            renderOverlay("GAME OVER", "Score: " + game.getScore() + "  —  Click to restart",
+        // --- Full-screen overlay for PAUSED / GAME_OVER / WON ---
+        String scoreLine = "Score: " + game.getScore();
+        if (game.getState() == GameState.PAUSED) {
+            renderOverlay("PAUSED", "Press P to resume",
+                          "Q to quit",
+                          new Color(120, 180, 255));
+        } else if (game.getState() == GameState.GAME_OVER) {
+            renderOverlay("GAME OVER", scoreLine,
+                          "Press S to restart   —   Q to quit",
                           new Color(200, 50, 50));
         } else if (game.getState() == GameState.WON) {
-            renderOverlay("VICTORY!", "Score: " + game.getScore() + "  —  Click to restart",
-                          new Color(50, 200, 50));
+            if (game.isLastLevel()) {
+                renderOverlay("ULTIMATE VICTORY", scoreLine,
+                              "Press S to play again   —   Q to quit",
+                              new Color(255, 215, 0));
+            } else {
+                renderOverlay("LEVEL " + game.getCurrentLevel() + " COMPLETE", scoreLine,
+                              "Press S for next level   —   Q to quit",
+                              new Color(50, 200, 50));
+            }
         }
     }
 
     /*
-     * Draws a centred overlay with a title and subtitle.
-     * Used for game-over and victory screens.
+     * Draws a centred full-screen overlay with a title and two text lines
+     * (typically a score line and a controls line). Used for the end screens.
      */
-    private void renderOverlay(String title, String subtitle, Color accentColor) {
+    private void renderOverlay(String title, String line1, String line2, Color accentColor) {
         // Darken the background
         g2d.setColor(COLOR_OVERLAY);
         g2d.fillRect(0, 0, windowWidth, windowHeight);
@@ -430,14 +446,42 @@ public class J2dGame implements GameView {
         // Title text — centred horizontally
         g2d.setFont(FONT_OVERLAY);
         g2d.setColor(accentColor);
-        int titleWidth = g2d.getFontMetrics().stringWidth(title);
-        g2d.drawString(title, (windowWidth - titleWidth) / 2, windowHeight / 2 - 20);
+        drawCentered(title, windowHeight / 2 - 30);
 
-        // Subtitle — smaller, white, below the title
+        // Two info lines — smaller, white, below the title
         g2d.setFont(FONT_SUB);
         g2d.setColor(COLOR_HUD_TEXT);
-        int subWidth = g2d.getFontMetrics().stringWidth(subtitle);
-        g2d.drawString(subtitle, (windowWidth - subWidth) / 2, windowHeight / 2 + 20);
+        drawCentered(line1, windowHeight / 2 + 15);
+        drawCentered(line2, windowHeight / 2 + 45);
+    }
+
+    /* Draws a string horizontally centred at the given baseline Y. */
+    private void drawCentered(String text, int y) {
+        int w = g2d.getFontMetrics().stringWidth(text);
+        g2d.drawString(text, (windowWidth - w) / 2, y);
+    }
+
+    // -------------------------------------------------------------------------
+    // Title screen (MENU state)
+    // -------------------------------------------------------------------------
+
+    /*
+     * Draws the title screen shown before a game starts. The background has
+     * already been cleared by render(); here we add a dim panel and the title +
+     * controls. Input (S to start, Q to quit) is handled in Game.handleInput().
+     */
+    private void renderMenu() {
+        g2d.setColor(COLOR_OVERLAY);
+        g2d.fillRect(0, 0, windowWidth, windowHeight);
+
+        g2d.setFont(FONT_OVERLAY);
+        g2d.setColor(COLOR_BASE_TILE);   // gold-ish title
+        drawCentered("TOWER DEFENCE", windowHeight / 2 - 30);
+
+        g2d.setFont(FONT_SUB);
+        g2d.setColor(COLOR_HUD_TEXT);
+        drawCentered("Press S to Start", windowHeight / 2 + 20);
+        drawCentered("Q to Quit", windowHeight / 2 + 50);
     }
 
     // -------------------------------------------------------------------------
@@ -460,6 +504,12 @@ public class J2dGame implements GameView {
 
     @Override
     public boolean wasPausePressed()  { return inputHandler.wasPausePressed(); }
+
+    @Override
+    public boolean wasStartPressed()  { return inputHandler.wasStartPressed(); }
+
+    @Override
+    public boolean wasQuitPressed()   { return inputHandler.wasQuitPressed(); }
 
     @Override
     public double getMouseGameX()     { return inputHandler.getMouseGameX(); }

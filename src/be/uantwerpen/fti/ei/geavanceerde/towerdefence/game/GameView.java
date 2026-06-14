@@ -21,6 +21,12 @@ public interface GameView {
     /* True once after the player presses the pause key. Consume-once pattern. */
     boolean wasPausePressed();
 
+    /* True once after the player presses the start/confirm key (S). Consume-once pattern. */
+    boolean wasStartPressed();
+
+    /* True once after the player presses the quit key (Q). Consume-once pattern. */
+    boolean wasQuitPressed();
+
     /* Mouse X position in game-world coordinates. */
     double getMouseGameX();
 

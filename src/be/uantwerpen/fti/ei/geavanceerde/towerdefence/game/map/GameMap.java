@@ -111,12 +111,18 @@ public class GameMap {
         if (waypoints.isEmpty()) {
             throw new RuntimeException("Level file has no path.waypoints defined");
         }
+        // Config gebruikt gehele tegel-indices; centreer op het tegelmidden (+0.5),
+        // net als bij het bouwen van het grid (zie initializeGrid), zodat vijanden
+        // door het midden van de padtegels lopen i.p.v. tegen de rand.
+        centerOnTiles(waypoints);
         enemyPath = new Path(waypoints);
 
         // --- Flying path (optional — null if not defined) ---
         String flyingStr = config.getString("path.flying.waypoints", "");
         if (!flyingStr.isEmpty()) {
-            flyingPath = new Path(parsePositionList(flyingStr));
+            List<Position> flyingWaypoints = parsePositionList(flyingStr);
+            centerOnTiles(flyingWaypoints);
+            flyingPath = new Path(flyingWaypoints);
         } else {
             flyingPath = null;
         }
@@ -158,6 +164,18 @@ public class GameMap {
             positions.add(new Position(x, y));
         }
         return positions;
+    }
+
+    /*
+     * Verschuift elke positie naar het midden van zijn tegel (+0.5 op x en y).
+     *
+     * Waypoints worden in de levelbestanden opgegeven als gehele tegel-indices.
+     * Een tegel (x,y) heeft echter zijn midden op (x+0.5, y+0.5) — zie
+     * initializeGrid. Door waypoints op datzelfde midden te leggen, loopt het
+     * midden van een vijand door het centrum van de padtegels.
+     */
+    private void centerOnTiles(List<Position> positions) {
+        positions.replaceAll(p -> new Position(p.getX() + 0.5, p.getY() + 0.5));
     }
 
     // -------------------------------------------------------------------------
