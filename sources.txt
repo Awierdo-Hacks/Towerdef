@@ -7,6 +7,7 @@ src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/game/entities/Enemy.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/game/entities/Entity.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/game/entities/Obstacle.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/game/entities/Projectile.java
+src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/game/entities/RayProjectile.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/game/entities/Tower.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/game/factory/EntityFactory.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/game/Game.java
@@ -34,7 +35,7 @@ src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/entities/J2dCannonTower.j
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/entities/J2dFlyingEnemy.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/entities/J2dIceTower.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/entities/J2dObstacle.java
-src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/entities/J2dProjectile.java
+src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/entities/J2dRayProjectile.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/InputHandler.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/J2dEntityFactory.java
 src/be/uantwerpen/fti/ei/geavanceerde/towerdefence/j2d/J2dGame.java

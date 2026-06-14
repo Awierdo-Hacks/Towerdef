@@ -532,11 +532,13 @@ public final class Game {
 
     /*
      * Each tower looks for a target (using its Streams-based findTarget).
-     * If it finds one and its cooldown is ready, the game loop creates a
-     * projectile via the factory and resets the tower's cooldown.
+     * If it finds one and its cooldown is ready, the tower creates its own
+     * projectile via the factory (tower.fire) and the game loop resets the
+     * cooldown.
      *
-     * A CannonTower fires a CannonProjectile (carries its own splash stats and
-     * applies area damage in onHit); every other tower fires a plain projectile.
+     * The game loop does no type-checking: tower.fire() polymorphically returns
+     * the right projectile (a ray projectile for an ArrowTower, a cannon
+     * projectile with splash stats for a CannonTower).
      */
     private void updateTowerFiring() {
         for (Tower tower : towers) {
@@ -544,21 +546,7 @@ public final class Game {
 
             Optional<Enemy> target = tower.findTarget(enemies);
             if (target.isPresent()) {
-                Enemy t = target.get();
-
-                Projectile proj;
-                if (tower instanceof CannonTower) {
-                    CannonTower ct = (CannonTower) tower;
-                    proj = entityFactory.createCannonProjectile(
-                        tower.getPosition(), t.getPosition(), tower.getDamage(),
-                        ct.getSplashRadius(), ct.getSplashDamage()
-                    );
-                } else {
-                    proj = entityFactory.createProjectile(
-                        tower.getPosition(), t.getPosition(), tower.getDamage()
-                    );
-                }
-
+                Projectile proj = tower.fire(entityFactory, target.get());
                 projectiles.add(proj);
                 tower.resetCooldown();
             }

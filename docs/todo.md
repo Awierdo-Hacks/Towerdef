@@ -47,7 +47,7 @@ _Laatst bijgewerkt: 2026-06-14 — afgevinkt op basis van de werkelijke codebase
 - [x] `J2dBasicEnemy.java` — sprite / rode cirkel, health bar
 - [x] `J2dArmoredEnemy.java` — sprite / maroon vierkant, gele health bar
 - [x] `J2dFlyingEnemy.java` — sprite / oranje driehoek, drop shadow
-- [x] `J2dProjectile.java` — ray sprite / gele cirkel
+- [x] `J2dRayProjectile.java` — ray sprite / gele cirkel
 - [x] `J2dCannonProjectile.java` — cannon sprite (splash via onHit) — toegevoegd bij splash-refactor
 - [x] `J2dBase.java` — goud kasteel met turrets, health bar
 - [x] `J2dObstacle.java` — bruin afgerond vierkant ⚠️ later verwijderd (ongebruikt)

@@ -155,7 +155,8 @@ Het Abstract Factory pattern + concrete game-logic subtypes.
   │  + createBasicEnemy()    │
   │  + createArmoredEnemy()  │
   │  + createFlyingEnemy()   │
-  │  + createProjectile()    │
+  │  + createRayProjectile() │
+  │  + createCannonProjectile()│
   │  + createBase()          │
   └──────────────────────────┘
 
@@ -229,12 +230,13 @@ Het volledige visualisatie-package. Implementeert de EntityFactory en extends al
   └─────────────────┘
 
   J2d entity klassen:
-  ┌──────────────┐ ┌──────────────┐ ┌────────────────┐
-  │ J2dTower     │ │ J2dEnemy     │ │ J2dProjectile  │
-  │ extends Tower│ │ extends Enemy│ │ extends        │
-  │ + draw(g2d)  │ │ + draw(g2d)  │ │   Projectile   │
-  └──────────────┘ └──────────────┘ │ + draw(g2d)    │
-                                    └────────────────┘
+  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐
+  │ J2dTower     │ │ J2dEnemy     │ │ J2dRayProjectile   │
+  │ extends Tower│ │ extends Enemy│ │ extends RayProjectile│
+  │ + draw(g2d)  │ │ + draw(g2d)  │ │ J2dCannonProjectile│
+  └──────────────┘ └──────────────┘ │ extends CannonProj.│
+                                    │ + draw(g2d)        │
+                                    └────────────────────┘
   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
   │ J2dBase      │ │ J2dObstacle  │ │ J2dBonus     │
   │ extends Base │ │ extends      │ │ extends Bonus│
@@ -251,7 +253,8 @@ Het volledige visualisatie-package. Implementeert de EntityFactory en extends al
 | `InputHandler.java` | j2d | KeyListener + MouseListener |
 | `J2dTower.java` | j2d.entities | Tekent torens met Graphics2D |
 | `J2dEnemy.java` | j2d.entities | Tekent vijanden met Graphics2D |
-| `J2dProjectile.java` | j2d.entities | Tekent projectielen |
+| `J2dRayProjectile.java` | j2d.entities | Tekent single-target ray-projectielen |
+| `J2dCannonProjectile.java` | j2d.entities | Tekent cannon (splash) projectielen |
 | `J2dBase.java` | j2d.entities | Tekent de basis |
 | `J2dObstacle.java` | j2d.entities | Tekent obstakels |
 | `J2dBonus.java` | j2d.entities | Tekent bonussen |

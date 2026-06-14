@@ -1,7 +1,9 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers;
 
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 
 import java.util.List;
@@ -95,6 +97,20 @@ public abstract class IceTower extends Tower {
     @Override
     public Optional<Enemy> findTarget(List<Enemy> enemies) {
         return Optional.empty();
+    }
+
+    // -------------------------------------------------------------------------
+    // Firing — IceTower never fires a projectile
+    // -------------------------------------------------------------------------
+
+    /*
+     * IceTower uses an area slow effect, not projectiles. This method only exists
+     * to satisfy the abstract fire() contract in Tower and is never called: the
+     * game loop guards firing with isReadyToFire(), which is always false here.
+     */
+    @Override
+    public Projectile fire(EntityFactory factory, Enemy target) {
+        return null;
     }
 
     // -------------------------------------------------------------------------

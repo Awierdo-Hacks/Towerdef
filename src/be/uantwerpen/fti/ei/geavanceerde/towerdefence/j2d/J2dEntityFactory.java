@@ -15,7 +15,7 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dIceTower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dBasicEnemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dArmoredEnemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dFlyingEnemy;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dProjectile;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dRayProjectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dCannonProjectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dBase;
 
@@ -70,7 +70,8 @@ public class J2dEntityFactory implements EntityFactory {
     // -------------------------------------------------------------------------
 
     @Override
-    public Tower createArrowTower(Position position) {
+    public Tower
+    createArrowTower(Position position) {
         return new J2dArrowTower(position, j2dGame);
     }
 
@@ -112,8 +113,8 @@ public class J2dEntityFactory implements EntityFactory {
     // -------------------------------------------------------------------------
 
     @Override
-    public Projectile createProjectile(Position start, Position targetPos, int damage) {
-        return new J2dProjectile(start, targetPos, damage, j2dGame);
+    public Projectile createRayProjectile(Position start, Position targetPos, int damage) {
+        return new J2dRayProjectile(start, targetPos, damage, j2dGame);
     }
 
     @Override

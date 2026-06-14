@@ -1,5 +1,6 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities;
 
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 
 import java.util.List;
@@ -13,12 +14,15 @@ import java.util.Optional;
  *   1. Calls tower.update(deltaTime)         — decrements fire cooldown
  *   2. Calls tower.findTarget(enemies)        — returns best enemy in range
  *   3. If target found and ready to fire:
- *        factory.createProjectile(...)         — game loop creates the projectile
+ *        tower.fire(factory, target)           — the tower creates its projectile
  *        tower.resetCooldown()                 — starts the inter-shot timer
  *   4. Calls tower.applyAreaEffect(enemies)   — used by IceTower to apply slow aura
  *
- * Projectile creation is intentionally NOT done inside the tower — it's the game
- * loop's job to call the factory. This keeps towers decoupled from the factory.
+ * Each tower creates its OWN projectile via fire(): an ArrowTower asks the factory
+ * for a ray projectile, a CannonTower for a cannon projectile. This keeps the game
+ * loop free of any type-checking (no "instanceof") — the right projectile is chosen
+ * polymorphically. The tower depends only on the abstract EntityFactory, so the
+ * game/visualization separation is preserved.
  *
  * Subclasses define the targeting strategy in findTarget():
  *   ArrowTower  — closest enemy in range     (Streams: min by distance)
@@ -89,6 +93,22 @@ public abstract class Tower extends Entity {
      * apply a comparator to pick the best candidate.
      */
     public abstract Optional<Enemy> findTarget(List<Enemy> enemies);
+
+    // -------------------------------------------------------------------------
+    // Firing — each tower creates its own projectile via the factory
+    // -------------------------------------------------------------------------
+
+    /*
+     * Creates and returns the projectile this tower fires at the given target,
+     * using the abstract EntityFactory. Called by the game loop only when the
+     * tower has a target and its cooldown is ready.
+     *
+     * Each subclass picks the right factory method polymorphically:
+     *   ArrowTower  -> factory.createRayProjectile(...)
+     *   CannonTower -> factory.createCannonProjectile(...)
+     *   IceTower    -> never fires (returns null; see IceTower).
+     */
+    public abstract Projectile fire(EntityFactory factory, Enemy target);
 
     // -------------------------------------------------------------------------
     // Area effects — override in towers that affect all enemies in a radius

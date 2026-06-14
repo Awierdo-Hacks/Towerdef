@@ -1,7 +1,9 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers;
 
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 
 import java.util.Comparator;
@@ -60,5 +62,14 @@ public abstract class ArrowTower extends Tower {
             .filter(Enemy::isAlive)
             .filter(e -> towerPos.distanceTo(e.getPosition()) <= this.range)
             .min(Comparator.comparingDouble(e -> towerPos.distanceTo(e.getPosition())));
+    }
+
+    // -------------------------------------------------------------------------
+    // Firing — a single-target ray projectile toward the chosen enemy
+    // -------------------------------------------------------------------------
+
+    @Override
+    public Projectile fire(EntityFactory factory, Enemy target) {
+        return factory.createRayProjectile(position, target.getPosition(), damage);
     }
 }

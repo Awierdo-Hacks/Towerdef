@@ -68,17 +68,16 @@ public interface EntityFactory {
     // -------------------------------------------------------------------------
 
     /*
-     * Creates a projectile fired from 'start' toward 'targetPos' dealing 'damage'.
+     * Creates a single-target ray projectile fired from 'start' toward 'targetPos'
+     * dealing 'damage'. Used by the ArrowTower (raygun).
      *
-     * The game loop calls this after a tower selects its target:
-     *   tower.findTarget(enemies).ifPresent(target -> {
-     *       Projectile p = factory.createProjectile(
-     *           tower.getPosition(), target.getPosition(), tower.getDamage());
-     *       projectiles.add(p);
-     *       tower.resetCooldown();
-     *   });
+     * The tower creates its own projectile through this factory when it fires:
+     *   public Projectile fire(EntityFactory factory, Enemy target) {
+     *       return factory.createRayProjectile(
+     *           position, target.getPosition(), damage);
+     *   }
      */
-    Projectile createProjectile(Position start, Position targetPos, int damage);
+    Projectile createRayProjectile(Position start, Position targetPos, int damage);
 
     /*
      * Creates a CannonTower projectile that, on impact, deals direct damage to its

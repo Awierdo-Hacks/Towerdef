@@ -22,6 +22,13 @@ import java.util.List;
  * Subclasses can override update() to add special behaviour:
  *   - CannonProjectile: explodes on arrival dealing splash damage in an area.
  *   - IceProjectile: applies a slow effect on hit instead of dealing damage.
+ *
+ * This base class is purely abstract in terms of HIT behaviour: it carries the
+ * shared movement (update) and the shared fields, but does NOT define what
+ * happens on impact. Each concrete projectile family decides that for itself:
+ *   - RayProjectile:    single-target damage.
+ *   - CannonProjectile: direct damage + area splash.
+ * The hit behaviour is therefore declared as the abstract onHit() contract.
  */
 public abstract class Projectile extends Entity {
 
@@ -82,18 +89,16 @@ public abstract class Projectile extends Entity {
     /*
      * Called by the game loop when this projectile collides with an enemy.
      *
-     * The default implementation deals flat damage to the primary target only.
-     * CannonProjectile overrides this to also apply splash damage to the other
-     * enemies in the list. The {@code enemies} list is passed so subclasses that
-     * affect an area can reach every nearby enemy without the game loop needing
-     * any projectile-type-specific code.
-     *
-     * After hitting, the projectile destroys itself.
+     * This is the abstract hit contract — each concrete projectile family defines
+     * its own impact behaviour:
+     *   - RayProjectile:    flat damage to the primary target only.
+     *   - CannonProjectile: direct damage + splash to other enemies in range.
+     * The {@code enemies} list is passed so subclasses that affect an area can
+     * reach every nearby enemy without the game loop needing any
+     * projectile-type-specific code. Implementations must destroy the projectile
+     * after hitting (set alive = false / call destroy()).
      */
-    public void onHit(Enemy target, List<Enemy> enemies) {
-        target.takeDamage(damage);
-        alive = false;
-    }
+    public abstract void onHit(Enemy target, List<Enemy> enemies);
 
     // -------------------------------------------------------------------------
     // Getters

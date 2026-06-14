@@ -311,7 +311,16 @@ geen kwaad. Doe dit in één aparte opruim-commit zodat de diff klein en reviewb
 - `J2dProjectile` rendert nu altijd de ray-sprite (geen `splashRadius`-check meer).
 - `CannonTower` behoudt `splashRadius`/`splashDamage` + getters (de factory leest ze uit).
 
-**Validatie:** volledige `javac`-build van `src/` met `luaj-jse-3.0.1.jar` op de classpath
+**B1-vervolg — projectiel-hiërarchie symmetrisch + geen `instanceof` meer:**
+- `Projectile.onHit(...)` is nu `abstract`; de single-target logica verhuisde naar de
+  nieuwe abstracte `game/entities/RayProjectile`. `J2dProjectile` → `J2dRayProjectile`
+  (extends `RayProjectile`). De base `Projectile` draagt geen concreet hit-gedrag meer.
+- `EntityFactory.createProjectile(...)` → `createRayProjectile(...)`.
+- De `instanceof CannonTower`-dispatch in `Game.updateTowerFiring()` is weg: elke tower
+  maakt zijn eigen projectiel via de nieuwe abstracte `Tower.fire(EntityFactory, Enemy)`
+  (ArrowTower → ray, CannonTower → cannon, IceTower → `null`/vuurt nooit).
+
+**Validatie:** volledige `javac`-build van `src/` met `luaj-jse-3.0.2.jar` op de classpath
 slaagt zonder fouten.
 
 ## Uitgevoerd op 2026-06-14 — sectie C detail

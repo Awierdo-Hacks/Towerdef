@@ -171,6 +171,8 @@ Entity (abstract)
 │   ├── ArmoredEnemy
 │   └── FlyingEnemy
 ├── Projectile (abstract)
+│   ├── RayProjectile      (single-target damage)
+│   └── CannonProjectile   (direct damage + area splash)
 ├── Base (abstract)
 ├── Obstacle (abstract)
 └── Bonus (abstract)
@@ -181,7 +183,8 @@ Entity (abstract)
 ```
 J2dTower extends Tower (or specific tower subclasses)
 J2dEnemy extends Enemy (or specific enemy subclasses)
-J2dProjectile extends Projectile
+J2dRayProjectile extends RayProjectile
+J2dCannonProjectile extends CannonProjectile
 J2dBase extends Base
 J2dObstacle extends Obstacle
 J2dBonus extends Bonus
@@ -280,8 +283,12 @@ public interface EntityFactory {
     Enemy createArmoredEnemy(List<Position> path);
     Enemy createFlyingEnemy(List<Position> path);
 
+    // Projectiles
+    Projectile createRayProjectile(Position start, Position target, int damage);
+    Projectile createCannonProjectile(Position start, Position target, int damage,
+                                      double splashRadius, int splashDamage);
+
     // Other entities
-    Projectile createProjectile(Position start, Position target, int damage);
     Base createBase(Position position, int health);
     Obstacle createObstacle(Position position);
     Bonus createBonus(Position position);
@@ -428,7 +435,8 @@ public class Position {
 | `InputHandler` | j2d | KeyListener + MouseListener for player input. |
 | `J2dTower` | j2d.entities | Renders towers using Graphics2D. |
 | `J2dEnemy` | j2d.entities | Renders enemies using Graphics2D. |
-| `J2dProjectile` | j2d.entities | Renders projectiles using Graphics2D. |
+| `J2dRayProjectile` | j2d.entities | Renders single-target ray projectiles using Graphics2D. |
+| `J2dCannonProjectile` | j2d.entities | Renders cannon (splash) projectiles using Graphics2D. |
 | `J2dBase` | j2d.entities | Renders the base using Graphics2D. |
 | `J2dObstacle` | j2d.entities | Renders obstacles using Graphics2D. |
 | `J2dBonus` | j2d.entities | Renders bonuses using Graphics2D. |
