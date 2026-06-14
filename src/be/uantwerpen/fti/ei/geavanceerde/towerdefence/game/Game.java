@@ -4,6 +4,10 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.FloatingTextKind;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.FloatingTextWorld;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.LifetimeSystem;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.MovementSystem;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.GameMap;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.ArrowTower;
@@ -112,6 +116,20 @@ public final class Game {
      * null als lua.script niet geconfigureerd is of het laden mislukt.
      */
     private LuaScriptEngine luaEngine;
+
+    // -------------------------------------------------------------------------
+    // ECS — data-oriented floating combat text (damage numbers, gold popups)
+    // -------------------------------------------------------------------------
+
+    /*
+     * The project's required data-oriented Entity-Component-System subsystem.
+     * The world holds the component data (Structure-of-Arrays); the two systems
+     * are stateless logic that sweep that data each frame. Spawned on hit/kill
+     * events below, rendered by J2dGame.
+     */
+    private final FloatingTextWorld floatingText = new FloatingTextWorld();
+    private final MovementSystem    ftMovement   = new MovementSystem();
+    private final LifetimeSystem    ftLifetime   = new LifetimeSystem();
 
     // -------------------------------------------------------------------------
     // Singleton
@@ -371,6 +389,10 @@ public final class Game {
         // 10. Cleanup dead projectiles
         projectiles.removeIf(p -> !p.isAlive());
 
+        // 10b. ECS — advance the floating combat text (move up + age/expire)
+        ftMovement.update(floatingText, deltaTime);
+        ftLifetime.update(floatingText, deltaTime);
+
         // 11. Win/lose check
         checkWinLose();
     }
@@ -496,7 +518,17 @@ public final class Game {
                 if (!e.isAlive()) continue;
 
                 if (p.collidesWith(e)) {
+                    // Capture HP before/after so the spawned number reflects the
+                    // REAL damage dealt (e.g. armour resistance reduces it).
+                    double before = e.getCurrentHealth();
                     p.onHit(e, enemies);
+                    double dealt = before - e.getCurrentHealth();
+                    if (dealt > 0) {
+                        floatingText.spawn(
+                            e.getPosition().getX(), e.getPosition().getY(),
+                            dealt, FloatingTextKind.DAMAGE
+                        );
+                    }
                     break;
                 }
             }
@@ -518,6 +550,11 @@ public final class Game {
             if (!e.isAlive()) {
                 gold  += e.getReward();
                 score += e.getScoreValue();
+                // ECS popup: gold reward at the kill site (label + colour chosen by the renderer)
+                floatingText.spawn(
+                    e.getPosition().getX(), e.getPosition().getY(),
+                    e.getReward(), FloatingTextKind.REWARD
+                );
                 it.remove();
             }
         }
@@ -562,6 +599,7 @@ public final class Game {
         this.gameMap     = null;
         this.waveManager = null;
         this.luaEngine   = null;   // wordt opnieuw geladen in setupLevel()
+        this.floatingText.clear();
     }
 
     // =========================================================================
@@ -571,6 +609,9 @@ public final class Game {
     public List<Tower>      getTowers()      { return towers; }
     public List<Enemy>      getEnemies()     { return enemies; }
     public List<Projectile> getProjectiles() { return projectiles; }
+
+    /** Read-only access to the ECS floating-text world (used by the renderer). */
+    public FloatingTextWorld getFloatingText() { return floatingText; }
 
     public Optional<Base> getBase()          { return base; }
 

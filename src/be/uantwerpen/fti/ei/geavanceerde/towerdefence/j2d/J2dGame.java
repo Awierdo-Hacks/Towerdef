@@ -7,6 +7,8 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.FloatingTextKind;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.FloatingTextWorld;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.GameMap;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.Tile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.ConfigManager;
@@ -102,6 +104,13 @@ public class J2dGame implements GameView {
     private static final Color  COLOR_OVERLAY   = new Color(0, 0, 0, 180);
     private static final Font   FONT_OVERLAY    = new Font("SansSerif", Font.BOLD, 48);
     private static final Font   FONT_SUB        = new Font("SansSerif", Font.PLAIN, 20);
+
+    // Floating combat text (ECS) — small bold numbers above entities.
+    // The game layer only supplies a FloatingTextKind; these colours are the
+    // visualization layer's mapping of each kind.
+    private static final Font   FONT_FLOAT          = new Font("SansSerif", Font.BOLD, 14);
+    private static final Color  COLOR_FLOAT_DAMAGE  = Color.WHITE;
+    private static final Color  COLOR_FLOAT_REWARD  = new Color(255, 215, 0);  // gold
 
     // -------------------------------------------------------------------------
     // Construction
@@ -228,12 +237,57 @@ public class J2dGame implements GameView {
                 if (p.isAlive()) p.render();
             }
 
+            // ECS floating combat text (damage numbers, gold popups) — above entities
+            renderFloatingText();
+
             // 4. HUD overlay
             renderHUD();
 
         } finally {
             g2d.dispose();
             bufferStrategy.show();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // ECS render system — draws the floating combat text
+    // -------------------------------------------------------------------------
+
+    /*
+     * Renders the data-oriented floating text by sweeping the FloatingTextWorld's
+     * read-only accessors by index. This is the visualization "system" for the ECS:
+     * it reads the component data and converts game-world coordinates to pixels.
+     * All Java2D drawing stays here in the j2d package.
+     */
+    private void renderFloatingText() {
+        FloatingTextWorld ft = Game.getInstance().getFloatingText();
+        g2d.setFont(FONT_FLOAT);
+
+        for (int i = 0; i < ft.getCount(); i++) {
+            // The game layer only gives us a raw amount + semantic kind. Choosing
+            // the colour AND formatting the label are the visualization's job.
+            FloatingTextKind kind = ft.getKind(i);
+            long amount = Math.round(ft.getValue(i));
+
+            String label;
+            Color  base;
+            if (kind == FloatingTextKind.REWARD) {
+                label = "+" + amount + "g";
+                base  = COLOR_FLOAT_REWARD;
+            } else {
+                label = String.valueOf(amount);
+                base  = COLOR_FLOAT_DAMAGE;
+            }
+
+            int alpha = (int) (ft.getAlpha(i) * 255);
+            g2d.setColor(new Color(
+                base.getRed(), base.getGreen(), base.getBlue(), alpha
+            ));
+            g2d.drawString(
+                label,
+                toScreenX(ft.getX(i)),
+                toScreenY(ft.getY(i))
+            );
         }
     }
 
