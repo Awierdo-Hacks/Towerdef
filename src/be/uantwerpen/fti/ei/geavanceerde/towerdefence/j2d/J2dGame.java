@@ -4,7 +4,6 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.Game;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.GameState;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.GameView;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Bonus;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
@@ -227,11 +226,6 @@ public class J2dGame implements GameView {
             // Projectiles
             for (Projectile p : game.getProjectiles()) {
                 if (p.isAlive()) p.render();
-            }
-
-            // Bonuses
-            for (Bonus b : game.getBonuses()) {
-                if (b.isAlive()) b.render();
             }
 
             // 4. HUD overlay

@@ -2,9 +2,7 @@ package be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d;
 
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.GameView;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Bonus;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Obstacle;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
@@ -18,9 +16,8 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dBasicEnemy
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dArmoredEnemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dFlyingEnemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dProjectile;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dCannonProjectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dBase;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dObstacle;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.j2d.entities.J2dBonus;
 
 import java.util.List;
 
@@ -119,6 +116,12 @@ public class J2dEntityFactory implements EntityFactory {
         return new J2dProjectile(start, targetPos, damage, j2dGame);
     }
 
+    @Override
+    public Projectile createCannonProjectile(Position start, Position targetPos, int damage,
+                                             double splashRadius, int splashDamage) {
+        return new J2dCannonProjectile(start, targetPos, damage, splashRadius, splashDamage, j2dGame);
+    }
+
     // -------------------------------------------------------------------------
     // Other entities
     // -------------------------------------------------------------------------
@@ -126,15 +129,5 @@ public class J2dEntityFactory implements EntityFactory {
     @Override
     public Base createBase(Position position, int maxHealth) {
         return new J2dBase(position, maxHealth, j2dGame);
-    }
-
-    @Override
-    public Obstacle createObstacle(Position position) {
-        return new J2dObstacle(position, j2dGame);
-    }
-
-    @Override
-    public Bonus createBonus(Position position) {
-        return new J2dBonus(position, j2dGame);
     }
 }

@@ -1,7 +1,6 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game;
 
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Bonus;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
@@ -74,7 +73,6 @@ public final class Game {
     private final List<Tower> towers;
     private final List<Enemy> enemies;
     private final List<Projectile> projectiles;
-    private final List<Bonus> bonuses;
     private Optional<Base> base;
 
     // -------------------------------------------------------------------------
@@ -128,7 +126,6 @@ public final class Game {
         this.towers      = new ArrayList<>();
         this.enemies     = new ArrayList<>();
         this.projectiles = new ArrayList<>();
-        this.bonuses     = new ArrayList<>();
         this.base        = Optional.empty();
     }
 
@@ -373,9 +370,8 @@ public final class Game {
         // 9. Cleanup dead enemies (award gold + score)
         cleanupDeadEnemies();
 
-        // 10. Cleanup dead projectiles and expired bonuses
+        // 10. Cleanup dead projectiles
         projectiles.removeIf(p -> !p.isAlive());
-        bonuses.removeIf(b -> !b.isAlive());
 
         // 11. Win/lose check
         checkWinLose();
@@ -451,8 +447,8 @@ public final class Game {
      * If it finds one and its cooldown is ready, the game loop creates a
      * projectile via the factory and resets the tower's cooldown.
      *
-     * CannonTower projectiles get splash data copied onto them so the
-     * collision handler can apply area damage on impact.
+     * A CannonTower fires a CannonProjectile (carries its own splash stats and
+     * applies area damage in onHit); every other tower fires a plain projectile.
      */
     private void updateTowerFiring() {
         for (Tower tower : towers) {
@@ -462,14 +458,17 @@ public final class Game {
             if (target.isPresent()) {
                 Enemy t = target.get();
 
-                Projectile proj = entityFactory.createProjectile(
-                    tower.getPosition(), t.getPosition(), tower.getDamage()
-                );
-
-                // Copy splash damage data for CannonTower projectiles
+                Projectile proj;
                 if (tower instanceof CannonTower) {
                     CannonTower ct = (CannonTower) tower;
-                    proj.setSplash(ct.getSplashRadius(), ct.getSplashDamage());
+                    proj = entityFactory.createCannonProjectile(
+                        tower.getPosition(), t.getPosition(), tower.getDamage(),
+                        ct.getSplashRadius(), ct.getSplashDamage()
+                    );
+                } else {
+                    proj = entityFactory.createProjectile(
+                        tower.getPosition(), t.getPosition(), tower.getDamage()
+                    );
                 }
 
                 projectiles.add(proj);
@@ -483,10 +482,13 @@ public final class Game {
     // -------------------------------------------------------------------------
 
     /*
-     * Checks each alive projectile against all alive enemies.
-     * On collision:
-     *   - Direct damage via projectile.onHit(enemy)
-     *   - Splash damage if the projectile has a splash radius (CannonTower)
+     * Checks each alive projectile against all alive enemies. On the first
+     * collision the projectile's onHit(target, enemies) is called and the
+     * projectile stops checking further enemies.
+     *
+     * onHit is polymorphic: a plain projectile damages only its target, while a
+     * CannonProjectile also applies splash to nearby enemies. The game loop needs
+     * no projectile-type-specific code here.
      */
     private void checkProjectileCollisions() {
         for (Projectile p : projectiles) {
@@ -496,21 +498,7 @@ public final class Game {
                 if (!e.isAlive()) continue;
 
                 if (p.collidesWith(e)) {
-                    Position impact = new Position(
-                        p.getPosition().getX(), p.getPosition().getY()
-                    );
-
-                    p.onHit(e);
-
-                    // Splash damage — hit all nearby enemies (except the direct target)
-                    if (p.getSplashRadius() > 0) {
-                        for (Enemy splash : enemies) {
-                            if (!splash.isAlive() || splash == e) continue;
-                            if (impact.distanceTo(splash.getPosition()) <= p.getSplashRadius()) {
-                                splash.takeDamage(p.getSplashDamage());
-                            }
-                        }
-                    }
+                    p.onHit(e, enemies);
                     break;
                 }
             }
@@ -572,7 +560,6 @@ public final class Game {
         this.towers.clear();
         this.enemies.clear();
         this.projectiles.clear();
-        this.bonuses.clear();
         this.base        = Optional.empty();
         this.gameMap     = null;
         this.waveManager = null;
@@ -586,7 +573,6 @@ public final class Game {
     public List<Tower>      getTowers()      { return towers; }
     public List<Enemy>      getEnemies()     { return enemies; }
     public List<Projectile> getProjectiles() { return projectiles; }
-    public List<Bonus>      getBonuses()     { return bonuses; }
 
     public Optional<Base> getBase()          { return base; }
     public void setBase(Base base)           { this.base = Optional.of(base); }
@@ -600,7 +586,6 @@ public final class Game {
     public void addScore(int points)         { this.score += points; }
 
     public int  getGold()                    { return gold; }
-    public void addGold(int amount)          { this.gold += amount; }
 
     /** Aantal vijanden dat nog gespawnd wordt in de huidige golf (voor de HUD). */
     public int getEnemiesRemaining() {

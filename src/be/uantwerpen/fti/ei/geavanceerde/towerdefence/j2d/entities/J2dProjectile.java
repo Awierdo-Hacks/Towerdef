@@ -10,11 +10,11 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 /*
- * Concrete Projectile with Java2D rendering.
+ * Concrete Projectile with Java2D rendering — used for the raygun (ArrowTower)
+ * single-target shots. Cannon shots use J2dCannonProjectile instead.
  *
- * Uses projectile_cannon.png for cannon projectiles (splashRadius > 0)
- * and projectile_ray.png for raygun projectiles (splashRadius == 0).
- * Falls back to a bright yellow circle if the sprite cannot be loaded.
+ * Uses the projectile_ray.png sprite. Falls back to a bright yellow circle
+ * if the sprite cannot be loaded.
  */
 public class J2dProjectile extends Projectile {
 
@@ -39,13 +39,7 @@ public class J2dProjectile extends Projectile {
         int sw = j2dGame.toScreenWidth(width);
         int sh = j2dGame.toScreenHeight(height);
 
-        // Pick sprite based on whether this is a splash (cannon) or direct (ray) projectile
-        BufferedImage sprite;
-        if (splashRadius > 0) {
-            sprite = SpriteManager.getSprite("projectile_cannon.png");
-        } else {
-            sprite = SpriteManager.getSprite("projectile_ray.png");
-        }
+        BufferedImage sprite = SpriteManager.getSprite("projectile_ray.png");
 
         if (sprite != null) {
             g.drawImage(sprite, sx, sy, sw, sh, null);

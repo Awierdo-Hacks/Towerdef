@@ -19,10 +19,11 @@ import java.util.Optional;
  *   size     : 0.9 x 0.9 units
  *
  * SPLASH DAMAGE:
- *   hasSplashDamage = true. The game loop checks this flag and calls
- *   applySplashDamage() when the projectile hits, damaging all enemies
- *   within splashRadius of the impact point.
- *   splashDamage is a fraction of the base damage (default: 40%).
+ *   The tower's splash stats (splashRadius + splashDamage) are passed to the
+ *   CannonProjectile it fires (via the factory). The actual area damage is then
+ *   applied inside CannonProjectile.onHit() when the projectile lands — the
+ *   tower itself does not apply damage. splashDamage is a fraction of the base
+ *   damage (default: 40%).
  *
  * TARGETING STRATEGY (Java Streams):
  *   Targets the enemy with the HIGHEST current HP in range.
@@ -44,18 +45,16 @@ public abstract class CannonTower extends Tower {
     public static final double DEFAULT_SPLASH_RADIUS = 1.2;  // game-world units
     public static final double DEFAULT_SPLASH_DAMAGE_FRACTION = 0.4;  // 40% of main damage
 
-    // Whether this tower's projectile explodes on impact
-    protected boolean hasSplashDamage;
-    protected double  splashRadius;
-    protected int     splashDamage;
+    // Splash stats — copied onto the CannonProjectile this tower fires
+    protected double splashRadius;
+    protected int    splashDamage;
 
     public CannonTower(Position position, double range, int damage, double fireRate, int cost,
                        double splashRadius, double splashDamageFraction) {
         super(position, SIZE, SIZE, range, damage, fireRate, cost);
-        this.hasSplashDamage = true;
-        this.splashRadius    = splashRadius;
+        this.splashRadius = splashRadius;
         // Splash damage is a fraction of the main hit damage
-        this.splashDamage    = (int)(damage * splashDamageFraction);
+        this.splashDamage = (int)(damage * splashDamageFraction);
     }
 
     // -------------------------------------------------------------------------
@@ -83,30 +82,9 @@ public abstract class CannonTower extends Tower {
     }
 
     // -------------------------------------------------------------------------
-    // Splash logic — called by the game loop when a cannonball lands
+    // Getters — read by the game loop to configure the fired CannonProjectile
     // -------------------------------------------------------------------------
 
-    /*
-     * Deals splash damage to all alive enemies within splashRadius of the impact point.
-     *
-     * Called by the game loop AFTER the direct hit has already been applied:
-     *   1. Projectile hits primary target → projectile.onHit(target)
-     *   2. Game loop calls cannonTower.applySplashDamage(impactPoint, allEnemies)
-     *
-     * STREAMS USAGE: filters by alive + within splash radius, applies damage to each.
-     */
-    public void applySplashDamage(Position impactPoint, List<Enemy> enemies) {
-        enemies.stream()
-            .filter(Enemy::isAlive)
-            .filter(e -> impactPoint.distanceTo(e.getPosition()) <= splashRadius)
-            .forEach(e -> e.takeDamage(splashDamage));
-    }
-
-    // -------------------------------------------------------------------------
-    // Getters
-    // -------------------------------------------------------------------------
-
-    public boolean hasSplashDamage() { return hasSplashDamage; }
     public double  getSplashRadius() { return splashRadius; }
     public int     getSplashDamage() { return splashDamage; }
 }

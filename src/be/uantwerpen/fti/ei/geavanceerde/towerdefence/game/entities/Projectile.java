@@ -2,6 +2,8 @@ package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities;
 
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 
+import java.util.List;
+
 /*
  * Abstract base class for all projectiles fired by towers.
  *
@@ -78,31 +80,19 @@ public abstract class Projectile extends Entity {
     // -------------------------------------------------------------------------
 
     /*
-     * Called when this projectile hits an enemy.
+     * Called by the game loop when this projectile collides with an enemy.
      *
-     * The default implementation deals flat damage to the target enemy.
-     * CannonProjectile overrides this to apply splash damage to all nearby enemies.
-     * IceProjectile overrides this to apply a slow effect instead.
+     * The default implementation deals flat damage to the primary target only.
+     * CannonProjectile overrides this to also apply splash damage to the other
+     * enemies in the list. The {@code enemies} list is passed so subclasses that
+     * affect an area can reach every nearby enemy without the game loop needing
+     * any projectile-type-specific code.
      *
      * After hitting, the projectile destroys itself.
      */
-    public void onHit(Enemy target) {
+    public void onHit(Enemy target, List<Enemy> enemies) {
         target.takeDamage(damage);
         alive = false;
-    }
-
-    // -------------------------------------------------------------------------
-    // Splash damage — set by the game loop for CannonTower projectiles
-    // -------------------------------------------------------------------------
-
-    // Defaults to 0 (no splash). The game loop calls setSplash() after creating
-    // a projectile for a CannonTower, copying the tower's splash stats onto it.
-    protected double splashRadius = 0;
-    protected int    splashDamage = 0;
-
-    public void setSplash(double radius, int damage) {
-        this.splashRadius = radius;
-        this.splashDamage = damage;
     }
 
     // -------------------------------------------------------------------------
@@ -112,8 +102,6 @@ public abstract class Projectile extends Entity {
     public int      getDamage()        { return damage; }
     public double   getSpeed()         { return speed; }
     public Position getTargetPosition(){ return targetPosition; }
-    public double   getSplashRadius()  { return splashRadius; }
-    public int      getSplashDamage()  { return splashDamage; }
 
     /* True when the projectile has reached its destination (set in update). */
     public boolean hasReachedTarget()  { return !alive; }

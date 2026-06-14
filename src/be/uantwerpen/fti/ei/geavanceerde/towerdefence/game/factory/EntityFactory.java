@@ -2,9 +2,7 @@ package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory;
 
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.GameView;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Base;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Bonus;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Obstacle;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Projectile;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
@@ -82,18 +80,21 @@ public interface EntityFactory {
      */
     Projectile createProjectile(Position start, Position targetPos, int damage);
 
+    /*
+     * Creates a CannonTower projectile that, on impact, deals direct damage to its
+     * primary target AND splash damage to all other enemies within splashRadius.
+     * The splash logic lives in the projectile (CannonProjectile.onHit), not in the
+     * game loop — so the game loop just calls onHit() polymorphically.
+     */
+    Projectile createCannonProjectile(Position start, Position targetPos, int damage,
+                                      double splashRadius, int splashDamage);
+
     // -------------------------------------------------------------------------
     // Other entities
     // -------------------------------------------------------------------------
 
     /* Creates the player's base at the given position with the specified max HP. */
     Base createBase(Position position, int maxHealth);
-
-    /* Creates an obstacle (blocks tower placement) at the given position. */
-    Obstacle createObstacle(Position position);
-
-    /* Creates a collectible bonus pickup at the given position. */
-    Bonus createBonus(Position position);
 
     // -------------------------------------------------------------------------
     // Visualization

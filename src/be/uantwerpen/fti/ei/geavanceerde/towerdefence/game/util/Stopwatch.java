@@ -59,14 +59,4 @@ public class Stopwatch {
         lastTime = now;
         return deltaTime;
     }
-
-    /**
-     * Resets the internal timer to the current moment without returning a value.
-     *
-     * <p>Useful when the game is paused or a level is reloaded — prevents a large
-     * spike in {@code deltaTime} on the first tick after the pause ends.</p>
-     */
-    public void reset() {
-        this.lastTime = System.nanoTime();
-    }
 }

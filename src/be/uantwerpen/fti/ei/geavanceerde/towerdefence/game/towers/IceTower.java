@@ -4,7 +4,6 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Enemy;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.entities.Tower;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,10 +26,10 @@ import java.util.Optional;
  *   currently within range. The slowTimer in Enemy ensures the effect
  *   expires naturally after the enemy leaves range.
  *
- * TARGETING STRATEGY (Java Streams):
- *   findTarget() returns the FASTEST enemy in range (optional — used to
- *   show a visual indicator of the primary target). The real effect is
- *   always applied to ALL enemies in range via applyAreaEffect().
+ * TARGETING:
+ *   IceTower has no single fire-target — its effect hits ALL enemies in range
+ *   via applyAreaEffect(). findTarget() therefore always returns Optional.empty();
+ *   it exists only because Tower declares it abstract.
  *
  * ABSTRACT because render() from Entity is not implemented here.
  * J2dIceTower (Fase 5) extends this and implements render().
@@ -85,22 +84,17 @@ public abstract class IceTower extends Tower {
     }
 
     // -------------------------------------------------------------------------
-    // Targeting — FASTEST alive enemy in range (for UI target indicator only)
+    // Targeting — IceTower has no single fire-target
     // -------------------------------------------------------------------------
 
     /*
-     * Returns the fastest enemy in range — used purely for UI feedback
-     * (e.g. drawing a highlight around the primary slow target).
-     * The actual slow is applied to ALL enemies via applyAreaEffect().
+     * IceTower does not fire at a single enemy; its slow is applied to every
+     * enemy in range via applyAreaEffect(). This method only exists to satisfy
+     * the abstract findTarget() contract in Tower and always returns empty.
      */
     @Override
     public Optional<Enemy> findTarget(List<Enemy> enemies) {
-        Position towerPos = this.position;
-
-        return enemies.stream()
-            .filter(Enemy::isAlive)
-            .filter(e -> towerPos.distanceTo(e.getPosition()) <= this.range)
-            .max(Comparator.comparingDouble(e -> e.getSpeed() * e.getSpeedMultiplier()));
+        return Optional.empty();
     }
 
     // -------------------------------------------------------------------------
