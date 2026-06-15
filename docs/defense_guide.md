@@ -244,6 +244,24 @@ frame's graphics context; it's in a `finally` block so it runs even if drawing t
 get drawn at ~40 px, so bilinear interpolation makes them downscale smoothly instead of looking
 blocky.
 
+**Q: Could you have simplified the rendering — dropped `BufferStrategy` and the hints — since the game is simple?**
+I looked at this, and removing them is *not* a real simplification. The renderer uses **active
+rendering**: the game loop calls `view.render()` every frame (`Game.java:199`); `J2dGame.render()`
+(`:228`) pulls the frame's `Graphics2D` from `bufferStrategy.getDrawGraphics()` (`:229`), and all 9
+`J2d*` entity classes read it back via `getGraphics2D()` (`:612`) before it's flipped with
+`dispose()` + `show()` (`:295`). Given that:
+- **Removing `BufferStrategy` makes things worse, not simpler.** The only alternatives are a
+  single-buffered `canvas.getGraphics()`, which visibly flickers/tears every frame, or moving to a
+  Swing `JPanel.paintComponent()`, which pushes rendering onto the EDT via `repaint()` coalescing —
+  *more* complex to reason about and still double-buffered underneath. Double buffering is the thing
+  that makes the animation look stable, so I keep it explicit.
+- **The two `RenderingHints` are ~8 lines and earn their keep.** Bilinear interpolation (`:240`) is
+  what stops the large source PNGs (~1024px) from looking blocky when downscaled to ~40px, and
+  antialiasing (`:233`) smooths the range rings and health bars. The maintenance cost is negligible.
+
+So the rendering is intentionally left as-is: the "advanced" pieces are the idiomatic, simplest way to
+get flicker-free, crisp output for an actively-rendered game loop.
+
 **Q: Walk me through how an enemy gets passed to Lua and the result read back.**
 Each frame, for every living enemy, `LuaScriptEngine.callUpdateEnemy()` (`LuaScriptEngine.java:175`)
 builds a `LuaTable`, copies type/HP/healthPercent/speedMul into it via `LuaValue.valueOf` (`:184–188`),
