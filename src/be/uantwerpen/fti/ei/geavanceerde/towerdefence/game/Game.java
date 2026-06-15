@@ -572,6 +572,8 @@ public final class Game {
      * CannonProjectile also applies splash to nearby enemies. The game loop needs
      * no projectile-type-specific code here.
      */
+    //logboek projectile switch case weggehaald, want projectiles handelen zelf hun eigen gedrag af in onHit()
+    // — geen type-checking of switch nodig in de game loop.
     private void checkProjectileCollisions() {
         for (Projectile p : projectiles) {
             if (!p.isAlive()) continue;
@@ -668,7 +670,7 @@ public final class Game {
     public List<Projectile> getProjectiles() { return projectiles; }
 
     /**
-     * Returns read-only access to the ECS floating-text world (used by the renderer).
+     * Returns read-only access to the ECS floating-text world.
      *
      * @return the floating-text component datastore
      */
@@ -717,8 +719,7 @@ public final class Game {
     public int  getGold()                    { return gold; }
 
     /**
-     * Returns the number of enemies still to be spawned in the current wave (for the
-     * HUD).
+     * Returns the number of enemies still to be spawned in the current wave.
      *
      * @return the remaining spawns in the current wave, or {@code 0} if no wave is active
      */
@@ -727,29 +728,29 @@ public final class Game {
     }
 
     /**
-     * Returns the current level number (1-based, for the HUD).
+     * Returns the current level number (1-based).
      *
      * @return the current level number
      */
     public int getCurrentLevel() { return currentLevel; }
 
     /**
-     * Returns the total number of levels (for the HUD and the WON-screen branching).
+     * Returns the total number of levels in the game.
      *
      * @return the total number of levels
      */
     public int getMaxLevels() { return maxLevels; }
 
     /**
-     * Returns whether the current level is the last one (so the WON screen shows
-     * "ultimate victory" instead of "level complete").
+     * Returns whether the current level is the final level (used to decide when the
+     * player has completed the whole game).
      *
      * @return {@code true} if the current level is the final level
      */
     public boolean isLastLevel() { return currentLevel >= maxLevels; }
 
     /**
-     * Returns the current wave number (1-based, for the HUD).
+     * Returns the current wave number (1-based).
      *
      * @return the current wave number, or {@code 0} if no wave manager is active
      */
@@ -758,7 +759,7 @@ public final class Game {
     }
 
     /**
-     * Returns the total number of waves in this level (for the HUD).
+     * Returns the total number of waves in this level.
      *
      * @return the total number of waves, or {@code 0} if no wave manager is active
      */

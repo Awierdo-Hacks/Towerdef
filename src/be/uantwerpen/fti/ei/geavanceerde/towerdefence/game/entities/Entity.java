@@ -28,10 +28,10 @@ public abstract class Entity {
     /** Position in game-world coordinates (double, not pixels). */
     protected Position position;
 
-    /** Width in game-world units — used for collision detection and rendering. */
+    /** Width in game-world units — used for collision detection. */
     protected double width;
 
-    /** Height in game-world units — used for collision detection and rendering. */
+    /** Height in game-world units — used for collision detection. */
     protected double height;
 
     /** When {@code false} the {@code Game} singleton removes this entity from its lists. */

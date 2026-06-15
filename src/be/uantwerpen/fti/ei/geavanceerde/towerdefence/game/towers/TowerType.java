@@ -31,9 +31,7 @@ public enum TowerType {
     /**
      * Detection/effect radius of this tower type, in game-world units. Mirrors the
      * {@code DEFAULT_RANGE} the factory builds each tower with, so the type can answer
-     * "how far do I reach?" without creating an instance — used by the visualization
-     * layer to draw the placement range preview. Pure game data (no awt/swing), so the
-     * game/visualization separation is preserved.
+     * "how far do I reach?" without creating an instance. Pure game data (no awt/swing).
      */
     private final double range;
 

@@ -4,9 +4,8 @@ package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map;
  * Defines the different terrain types a tile can have on the game map.
  *
  * <p>Each tile in the {@code GameMap} grid has exactly one {@code TileType} that
- * determines whether enemies can walk through it, whether the player can place a
- * tower on it, and how the tile is rendered in the visualization layer. The grid is
- * populated by {@code GameMap} when it loads a level file.</p>
+ * determines whether enemies can walk through it and whether the player can place a
+ * tower on it. The grid is populated by {@code GameMap} when it loads a level file.</p>
  *
  * @author Tower Defence team
  */

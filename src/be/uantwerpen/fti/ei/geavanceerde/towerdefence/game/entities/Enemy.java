@@ -29,7 +29,7 @@ import java.util.List;
  */
 public abstract class Enemy extends Entity {
 
-    /** Maximum HP — stored so health bars can show a percentage. */
+    /** Maximum HP — the starting health and the basis for the health fraction. */
     protected double maxHealth;
 
     /** Current HP — when this reaches {@code 0} the enemy is destroyed. */
@@ -209,8 +209,7 @@ public abstract class Enemy extends Entity {
     }
 
     /**
-     * Returns the current health as a fraction of the maximum, used for health-bar
-     * rendering.
+     * Returns the current health as a fraction of the maximum.
      *
      * @return a value in the range {@code 0.0}–{@code 1.0}
      */

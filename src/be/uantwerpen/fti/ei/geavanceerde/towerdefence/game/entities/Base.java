@@ -16,7 +16,7 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
  */
 public abstract class Base extends Entity {
 
-    /** Maximum HP — stored so a health bar can display as a percentage. */
+    /** Maximum HP — the starting health and the basis for the health fraction. */
     protected int maxHealth;
 
     /** Current HP — when {@code 0} the game is lost. */
@@ -102,8 +102,7 @@ public abstract class Base extends Entity {
     public int    getMaxHealth()     { return maxHealth; }
 
     /**
-     * Returns the current health as a fraction of the maximum, used for health-bar
-     * rendering.
+     * Returns the current health as a fraction of the maximum.
      *
      * @return a value in the range {@code 0.0}–{@code 1.0}
      */

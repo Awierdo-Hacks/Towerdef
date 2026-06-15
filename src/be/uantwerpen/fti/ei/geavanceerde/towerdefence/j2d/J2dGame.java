@@ -50,6 +50,8 @@ import javax.swing.JFrame;
  *
  * @author Tower Defence team
  */
+
+// logboek bufferstrategy, spritescale , range ringen
 public class J2dGame implements GameView {
 
     // -------------------------------------------------------------------------

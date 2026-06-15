@@ -33,6 +33,7 @@ import java.nio.file.Paths;
  *
  * @author Tower Defence team
  */
+// logboek library problemen opgelost verkeerde lua versie ,debugging
 public class LuaScriptEngine {
 
     /** Minimale tijd (ms) tussen twee controles op bestandswijzigingen. */

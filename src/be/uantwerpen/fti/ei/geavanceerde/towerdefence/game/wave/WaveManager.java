@@ -34,6 +34,8 @@ import java.util.Optional;
  *
  * @author Tower Defence team
  */
+
+//logboek parsing problemen solved
 public class WaveManager {
 
     /** Wachttijd tussen het einde van een golf en de start van de volgende (seconden). */
@@ -239,8 +241,7 @@ public class WaveManager {
     }
 
     /**
-     * Geeft het aantal vijanden terug dat in de huidige golf nog gespawnd moet
-     * worden. Handig voor de HUD ("Vijanden over: X").
+     * Geeft het aantal vijanden terug dat in de huidige golf nog gespawnd moet worden.
      *
      * @return het resterende aantal spawns in de huidige golf, of {@code 0} als alles klaar is
      */
@@ -251,7 +252,7 @@ public class WaveManager {
 
     /**
      * Geeft het aantal seconden tot de volgende golf start terug ({@code 0} als een
-     * golf actief is). Handig voor een afteltimer in de HUD.
+     * golf actief is).
      *
      * @return de resterende wachttijd in seconden
      */

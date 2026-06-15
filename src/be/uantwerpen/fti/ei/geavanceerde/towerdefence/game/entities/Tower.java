@@ -187,8 +187,8 @@ public abstract class Tower extends Entity {
     public int     getDamage()       { return damage; }
 
     /**
-     * Returns the detection/effect radius in game-world units — read by the view to
-     * draw the range ring.
+     * Returns the detection/attack radius in game-world units — the distance within
+     * which this tower can target enemies.
      *
      * @return the range radius
      */
