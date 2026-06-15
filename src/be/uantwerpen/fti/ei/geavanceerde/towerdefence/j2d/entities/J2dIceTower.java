@@ -36,10 +36,14 @@ public class J2dIceTower extends IceTower {
         Graphics2D g = j2dGame.getGraphics2D();
         if (g == null) return;
 
-        int sx = j2dGame.toScreenX(position.getX() - width / 2);
-        int sy = j2dGame.toScreenY(position.getY() - height / 2);
-        int sw = j2dGame.toScreenWidth(width);
-        int sh = j2dGame.toScreenHeight(height);
+        // Visuele grootte (groter dan de logische hitbox), gecentreerd op de positie.
+        // De range-aura hieronder gebruikt de logische 'range' en blijft dus ongewijzigd.
+        double vw = width  * J2dGame.SPRITE_SCALE;
+        double vh = height * J2dGame.SPRITE_SCALE;
+        int sx = j2dGame.toScreenX(position.getX() - vw / 2);
+        int sy = j2dGame.toScreenY(position.getY() - vh / 2);
+        int sw = j2dGame.toScreenWidth(vw);
+        int sh = j2dGame.toScreenHeight(vh);
 
         // Translucent aura circle showing slow range
         int rangeW = j2dGame.toScreenWidth(range * 2);

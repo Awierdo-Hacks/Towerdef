@@ -105,6 +105,14 @@ public class J2dGame implements GameView {
     private static final Font   FONT_OVERLAY    = new Font("SansSerif", Font.BOLD, 48);
     private static final Font   FONT_SUB        = new Font("SansSerif", Font.PLAIN, 20);
 
+    // Visuele vergroting van sprites t.o.v. hun logische hitbox. Puur cosmetisch:
+    // het venster schaalt alles al evenredig mee (toScreenWidth), maar de logische
+    // groottes (enemy 0.6, projectiel 0.2, ...) ogen klein in een tile. Deze factor
+    // tekent de sprite groter en GECENTREERD op dezelfde positie, terwijl width/height
+    // — en dus collidesWith / gameplay / de bewust kleine flying-hitbox — onaangeroerd
+    // blijven. Wordt door de J2d-entities gebruikt in hun render().
+    public static final double SPRITE_SCALE = 1.5;
+
     // Floating combat text (ECS) — small bold numbers above entities.
     // The game layer only supplies a FloatingTextKind; these colours are the
     // visualization layer's mapping of each kind.
@@ -207,6 +215,13 @@ public class J2dGame implements GameView {
             g2d.setRenderingHint(
                 RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON
+            );
+
+            // Bilinear sampling so the large source PNGs (e.g. 1024x1024 enemies)
+            // downscale to ~40px smoothly instead of looking harsh/aliased.
+            g2d.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR
             );
 
             // 1. Clear screen with grass colour as fallback
