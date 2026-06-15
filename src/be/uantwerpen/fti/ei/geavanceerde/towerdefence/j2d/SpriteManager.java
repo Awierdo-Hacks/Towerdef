@@ -7,22 +7,30 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.imageio.ImageIO;
 
-/*
- * Loads and caches sprite images from the resources/images/ directory.
+/**
+ * Loads and caches sprite images from the {@code resources/images/} directory.
  *
- * Uses the classloader to read images from the classpath so it works
- * both when running from an IDE and from a packaged JAR.
+ * <p>Uses the classloader to read images from the classpath so it works both when
+ * running from an IDE and from a packaged JAR. Each image is loaded only once and
+ * stored in a {@code HashMap} for reuse.</p>
  *
- * Each image is loaded only once and stored in a HashMap for reuse.
+ * @author Tower Defence team
  */
 public class SpriteManager {
 
+    /** Cache of already-loaded sprites, keyed by filename. */
     private static final Map<String, BufferedImage> cache = new HashMap<>();
 
-    /*
-     * Returns the sprite for the given filename (e.g. "floor.png").
-     * Loads the image on first access and caches it for subsequent calls.
-     * Returns null if the image cannot be found or loaded.
+    /** Utility class — not meant to be instantiated. */
+    private SpriteManager() {
+    }
+
+    /**
+     * Returns the sprite for the given filename (e.g. {@code "floor.png"}). The image
+     * is loaded on first access and cached for subsequent calls.
+     *
+     * @param filename the image filename within {@code resources/images/}
+     * @return the loaded image, or {@code null} if it cannot be found or loaded
      */
     public static BufferedImage getSprite(String filename) {
         if (cache.containsKey(filename)) {

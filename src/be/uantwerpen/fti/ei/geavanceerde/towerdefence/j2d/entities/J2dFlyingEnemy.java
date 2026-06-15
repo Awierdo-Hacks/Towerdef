@@ -10,26 +10,41 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
-/*
- * Concrete FlyingEnemy with Java2D rendering.
+/**
+ * Concrete {@link FlyingEnemy} with Java2D rendering.
  *
- * Uses the enemy_flying.png sprite with a drop shadow beneath it
- * to visually indicate flight. Falls back to an orange triangle
- * if the sprite cannot be loaded.
+ * <p>Uses the {@code enemy_flying.png} sprite with a drop shadow beneath it to
+ * visually indicate flight, falling back to an orange triangle if the sprite cannot be
+ * loaded.</p>
+ *
+ * @author Tower Defence team
  */
 public class J2dFlyingEnemy extends FlyingEnemy {
 
+    /** Fallback fill colour when the sprite cannot be loaded. */
     private static final Color FILL        = new Color(255, 165, 0);
+    /** Fallback border colour when the sprite cannot be loaded. */
     private static final Color BORDER      = new Color(200, 100, 0);
+    /** Colour of the drop shadow drawn under the flying enemy. */
     private static final Color SHADOW      = new Color(0, 0, 0, 50);
+    /** Background colour of the health bar. */
     private static final Color HEALTH_BG   = new Color(60, 60, 60);
+    /** Fill colour of the health bar. */
     private static final Color HEALTH_FILL = new Color(0, 200, 0);
 
+    /** The view used for graphics access and coordinate conversion. */
     private final J2dGame j2dGame;
+    /** The enemy sprite, or {@code null} if it could not be loaded. */
     private final BufferedImage sprite;
 
+    /**
+     * Creates a Java2D flying enemy that follows the given path.
+     *
+     * @param path    the ordered list of waypoints to follow (first is the spawn point)
+     * @param j2dGame the view used for rendering and coordinate conversion
+     */
     public J2dFlyingEnemy(List<Position> path, J2dGame j2dGame) {
-        super(path.get(0), DEFAULT_HEALTH, DEFAULT_SPEED,
+        super(path.getFirst(), DEFAULT_HEALTH, DEFAULT_SPEED,
               DEFAULT_REWARD, DEFAULT_SCORE, path);
         this.j2dGame = j2dGame;
         this.sprite  = SpriteManager.getSprite("enemy_flying.png");

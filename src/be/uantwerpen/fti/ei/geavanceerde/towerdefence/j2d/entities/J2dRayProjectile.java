@@ -9,22 +9,37 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-/*
- * Concrete RayProjectile with Java2D rendering — used for the raygun (ArrowTower)
- * single-target shots. Cannon shots use J2dCannonProjectile instead.
+/**
+ * Concrete {@link RayProjectile} with Java2D rendering — used for the raygun
+ * ({@code ArrowTower}) single-target shots. Cannon shots use
+ * {@code J2dCannonProjectile} instead.
  *
- * Uses the projectile_ray.png sprite. Falls back to a bright yellow circle
- * if the sprite cannot be loaded. The single-target hit behaviour lives in the
- * game-logic superclass RayProjectile.onHit().
+ * <p>Uses the {@code projectile_ray.png} sprite, falling back to a bright yellow
+ * circle if the sprite cannot be loaded. The single-target hit behaviour lives in the
+ * game-logic superclass {@code RayProjectile.onHit()}.</p>
+ *
+ * @author Tower Defence team
  */
 public class J2dRayProjectile extends RayProjectile {
 
+    /** Fallback fill colour when the sprite cannot be loaded. */
     private static final Color FILL   = new Color(255, 255, 50);
+    /** Fallback border colour when the sprite cannot be loaded. */
     private static final Color BORDER = new Color(200, 200, 0);
+    /** Travel speed of the projectile in game-world units per second. */
     private static final double PROJECTILE_SPEED = 8.0;
 
+    /** The view used for graphics access and coordinate conversion. */
     private final J2dGame j2dGame;
 
+    /**
+     * Creates a Java2D ray projectile flying from {@code start} to {@code target}.
+     *
+     * @param start   the position the projectile is fired from
+     * @param target  the world position the projectile flies toward
+     * @param damage  the damage dealt on direct hit
+     * @param j2dGame the view used for rendering and coordinate conversion
+     */
     public J2dRayProjectile(Position start, Position target, int damage, J2dGame j2dGame) {
         super(start, target, PROJECTILE_SPEED, damage);
         this.j2dGame = j2dGame;

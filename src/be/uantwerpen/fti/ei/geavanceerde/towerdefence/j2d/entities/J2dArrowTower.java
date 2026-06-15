@@ -9,20 +9,32 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-/*
- * Concrete ArrowTower with Java2D rendering.
+/**
+ * Concrete {@link ArrowTower} with Java2D rendering.
  *
- * Visually themed as a Raygun tower — uses the tower_raygun.png sprite.
- * Game logic (range, damage, fire rate) is unchanged from ArrowTower.
+ * <p>Visually themed as a raygun tower (uses the {@code tower_raygun.png} sprite).
+ * The game logic (range, damage, fire rate) is unchanged from {@code ArrowTower}.</p>
+ *
+ * @author Tower Defence team
  */
 public class J2dArrowTower extends ArrowTower {
 
+    /** Fallback fill colour when the sprite cannot be loaded. */
     private static final Color FILL   = new Color(34, 139, 34);
+    /** Fallback border colour when the sprite cannot be loaded. */
     private static final Color BORDER = new Color(0, 100, 0);
 
+    /** The view used for graphics access and coordinate conversion. */
     private final J2dGame j2dGame;
+    /** The tower sprite, or {@code null} if it could not be loaded. */
     private final BufferedImage sprite;
 
+    /**
+     * Creates a Java2D arrow tower at the given position.
+     *
+     * @param position the build position in game-world coordinates
+     * @param j2dGame  the view used for rendering and coordinate conversion
+     */
     public J2dArrowTower(Position position, J2dGame j2dGame) {
         super(position, DEFAULT_RANGE, DEFAULT_DAMAGE, DEFAULT_FIRE_RATE, DEFAULT_COST);
         this.j2dGame = j2dGame;

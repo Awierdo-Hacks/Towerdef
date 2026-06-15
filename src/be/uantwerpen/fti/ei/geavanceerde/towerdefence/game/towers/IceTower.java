@@ -9,50 +9,65 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 import java.util.List;
 import java.util.Optional;
 
-/*
+/**
  * A support tower that slows all enemies within its range.
  *
- * Stats (defaults):
- *   range      : 3.0 game-world units
- *   damage     : 0 (no direct damage)
- *   fireRate   : 0 (doesn't fire projectiles — uses area effect instead)
- *   cost       : 75 gold
- *   slowFactor : 0.4 (enemies in range move at 40% of their normal speed)
- *   slowDuration: 0.3 seconds (how long the slow lasts after leaving range)
- *   size       : 0.8 x 0.8 units
+ * <p>Default stats:</p>
+ * <ul>
+ *   <li>range: 3.0 game-world units</li>
+ *   <li>damage: 0 (no direct damage)</li>
+ *   <li>fire rate: 0 (does not fire projectiles — uses an area effect instead)</li>
+ *   <li>cost: 75 gold</li>
+ *   <li>slow factor: 0.4 (enemies in range move at 40% of normal speed)</li>
+ *   <li>slow duration: 0.3 seconds (how long the slow lasts after leaving range)</li>
+ *   <li>size: 0.8 × 0.8 units</li>
+ * </ul>
  *
- * MECHANIC:
- *   Unlike Arrow/Cannon towers, the IceTower never fires a projectile.
- *   Instead, the game loop calls applyAreaEffect(enemies) every frame.
- *   This calls enemy.applySlow(slowFactor, slowDuration) for every enemy
- *   currently within range. The slowTimer in Enemy ensures the effect
- *   expires naturally after the enemy leaves range.
+ * <p><strong>Mechanic:</strong> unlike the arrow and cannon towers, the ice tower
+ * never fires a projectile. Instead the game loop calls
+ * {@link #applyAreaEffect(List)} every frame, which calls
+ * {@code enemy.applySlow(slowFactor, slowDuration)} for each enemy in range. The
+ * {@code slowTimer} in {@code Enemy} ensures the effect expires after the enemy
+ * leaves range.</p>
  *
- * TARGETING:
- *   IceTower has no single fire-target — its effect hits ALL enemies in range
- *   via applyAreaEffect(). findTarget() therefore always returns Optional.empty();
- *   it exists only because Tower declares it abstract.
+ * <p>Abstract because {@code render()} from {@code Entity} is not implemented here;
+ * {@code J2dIceTower} extends this class and implements it.</p>
  *
- * ABSTRACT because render() from Entity is not implemented here.
- * J2dIceTower (Fase 5) extends this and implements render().
+ * @author Tower Defence team
  */
 public abstract class IceTower extends Tower {
 
+    /** Default detection/effect radius in game-world units. */
     public static final double DEFAULT_RANGE         = 3.0;
-    public static final int    DEFAULT_DAMAGE        = 0;     // no direct damage
-    public static final double DEFAULT_FIRE_RATE     = 0.0;   // does not fire
+    /** Default damage — the ice tower deals none. */
+    public static final int    DEFAULT_DAMAGE        = 0;
+    /** Default fire rate — the ice tower does not fire. */
+    public static final double DEFAULT_FIRE_RATE     = 0.0;
+    /** Default gold cost to place this tower. */
     public static final int    DEFAULT_COST          = 75;
+    /** Width and height of the tower in game-world units. */
     public static final double SIZE                  = 0.8;
 
-    public static final double DEFAULT_SLOW_FACTOR   = 0.4;   // 40% speed
-    public static final double DEFAULT_SLOW_DURATION = 0.3;   // seconds after leaving range
+    /** Default slow multiplier (40% of base speed). */
+    public static final double DEFAULT_SLOW_FACTOR   = 0.4;
+    /** Default slow lingering duration in seconds after an enemy leaves range. */
+    public static final double DEFAULT_SLOW_DURATION = 0.3;
 
-    // How much to reduce enemy speed (multiplier, e.g. 0.4 = 40% of base speed)
+    /** Speed multiplier applied to slowed enemies (e.g. {@code 0.4} = 40% of base speed). */
     protected double slowFactor;
 
-    // How long the slow lingers after an enemy leaves the ice tower's range
+    /** How long (seconds) the slow lingers after an enemy leaves the tower's range. */
     protected double slowDuration;
 
+    /**
+     * Creates an ice tower with the given stats. It deals no damage and never fires.
+     *
+     * @param position     the build position in game-world coordinates
+     * @param range        the detection/effect radius in game-world units
+     * @param slowFactor   the speed multiplier applied to enemies in range
+     * @param slowDuration the seconds the slow lingers after leaving range
+     * @param cost         the gold cost to place this tower
+     */
     public IceTower(Position position, double range, double slowFactor, double slowDuration, int cost) {
         super(position, SIZE, SIZE, range, DEFAULT_DAMAGE, DEFAULT_FIRE_RATE, cost);
         this.slowFactor   = slowFactor;
@@ -63,17 +78,18 @@ public abstract class IceTower extends Tower {
     // Area effect — applies slow to ALL enemies in range every frame
     // -------------------------------------------------------------------------
 
-    /*
+    /**
      * Slows every alive enemy within this tower's range.
      *
-     * Called by the game loop each frame instead of the normal fire/projectile flow.
-     * enemy.applySlow() refreshes the slow timer — so as long as an enemy stays
-     * in range, it remains slowed. The moment it leaves, the timer ticks down
-     * and speed returns to normal after slowDuration seconds.
+     * <p>Called by the game loop each frame instead of the normal fire/projectile
+     * flow. {@code enemy.applySlow()} refreshes the slow timer, so as long as an
+     * enemy stays in range it remains slowed; once it leaves, speed returns to normal
+     * after {@code slowDuration} seconds.</p>
      *
-     * STREAMS USAGE:
-     *   1. filter: alive enemies within range
-     *   2. forEach: apply the slow effect to each one
+     * <p>Streams usage: {@code filter} keeps alive enemies within range, then
+     * {@code forEach} applies the slow to each one.</p>
+     *
+     * @param enemies the current list of enemies
      */
     @Override
     public void applyAreaEffect(List<Enemy> enemies) {
@@ -89,10 +105,14 @@ public abstract class IceTower extends Tower {
     // Targeting — IceTower has no single fire-target
     // -------------------------------------------------------------------------
 
-    /*
-     * IceTower does not fire at a single enemy; its slow is applied to every
-     * enemy in range via applyAreaEffect(). This method only exists to satisfy
-     * the abstract findTarget() contract in Tower and always returns empty.
+    /**
+     * Always returns {@link Optional#empty()} — the ice tower has no single
+     * fire-target; its slow is applied to every enemy in range via
+     * {@link #applyAreaEffect(List)}. This method only exists to satisfy the abstract
+     * {@code findTarget()} contract in {@code Tower}.
+     *
+     * @param enemies the current list of enemies (ignored)
+     * @return always {@link Optional#empty()}
      */
     @Override
     public Optional<Enemy> findTarget(List<Enemy> enemies) {
@@ -103,10 +123,15 @@ public abstract class IceTower extends Tower {
     // Firing — IceTower never fires a projectile
     // -------------------------------------------------------------------------
 
-    /*
-     * IceTower uses an area slow effect, not projectiles. This method only exists
-     * to satisfy the abstract fire() contract in Tower and is never called: the
-     * game loop guards firing with isReadyToFire(), which is always false here.
+    /**
+     * Always returns {@code null} — the ice tower uses an area slow effect, not
+     * projectiles. This method only exists to satisfy the abstract {@code fire()}
+     * contract in {@code Tower} and is never called: the game loop guards firing with
+     * {@link #isReadyToFire()}, which is always {@code false} here.
+     *
+     * @param factory the abstract factory (ignored)
+     * @param target  the enemy (ignored)
+     * @return always {@code null}
      */
     @Override
     public Projectile fire(EntityFactory factory, Enemy target) {
@@ -117,6 +142,11 @@ public abstract class IceTower extends Tower {
     // Override — IceTower never fires, so isReadyToFire is always false
     // -------------------------------------------------------------------------
 
+    /**
+     * Always returns {@code false} — the ice tower does not use the projectile system.
+     *
+     * @return always {@code false}
+     */
     @Override
     public boolean isReadyToFire() {
         return false;  // IceTower does not use the projectile system

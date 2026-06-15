@@ -10,22 +10,36 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
-/*
- * Concrete BasicEnemy with Java2D rendering.
+/**
+ * Concrete {@link BasicEnemy} with Java2D rendering.
  *
- * Uses the enemy_basic.png sprite with a health bar above it.
- * Falls back to a red circle if the sprite cannot be loaded.
+ * <p>Uses the {@code enemy_basic.png} sprite with a health bar above it, falling back
+ * to a red circle if the sprite cannot be loaded.</p>
+ *
+ * @author Tower Defence team
  */
 public class J2dBasicEnemy extends BasicEnemy {
 
+    /** Fallback fill colour when the sprite cannot be loaded. */
     private static final Color FILL        = new Color(220, 50, 50);
+    /** Fallback border colour when the sprite cannot be loaded. */
     private static final Color BORDER      = new Color(139, 0, 0);
+    /** Background colour of the health bar. */
     private static final Color HEALTH_BG   = new Color(60, 60, 60);
+    /** Fill colour of the health bar. */
     private static final Color HEALTH_FILL = new Color(0, 200, 0);
 
+    /** The view used for graphics access and coordinate conversion. */
     private final J2dGame j2dGame;
+    /** The enemy sprite, or {@code null} if it could not be loaded. */
     private final BufferedImage sprite;
 
+    /**
+     * Creates a Java2D basic enemy that follows the given path.
+     *
+     * @param path    the ordered list of waypoints to follow (first is the spawn point)
+     * @param j2dGame the view used for rendering and coordinate conversion
+     */
     public J2dBasicEnemy(List<Position> path, J2dGame j2dGame) {
         super(path.get(0), DEFAULT_HEALTH, DEFAULT_SPEED,
               DEFAULT_REWARD, DEFAULT_SCORE, path);

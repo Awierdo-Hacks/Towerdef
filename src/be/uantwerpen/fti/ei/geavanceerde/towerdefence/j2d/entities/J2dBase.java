@@ -9,14 +9,15 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-/*
- * Concrete Base with Java2D rendering.
+/**
+ * Concrete {@link Base} with Java2D rendering.
  *
- * Uses the nurse_base.png sprite. Falls back to a gold-coloured castle
- * shape (a rectangle with two small turrets on the corners) if the
- * sprite cannot be loaded. A health bar below shows remaining HP.
+ * <p>Uses the {@code nurse_base.png} sprite, falling back to a gold-coloured castle
+ * shape (a rectangle with two small corner turrets) if the sprite cannot be loaded. A
+ * health bar below shows the remaining HP. Default size is 1.0 × 1.0 game-world units
+ * (one tile).</p>
  *
- * Default size is 1.0 x 1.0 game-world units (one tile).
+ * @author Tower Defence team
  */
 public class J2dBase extends Base {
 
@@ -37,6 +38,13 @@ public class J2dBase extends Base {
     private final J2dGame j2dGame;
     private final BufferedImage sprite;
 
+    /**
+     * Creates a Java2D base at the given position.
+     *
+     * @param position  the position in game-world coordinates
+     * @param maxHealth the maximum (and starting) HP of the base
+     * @param j2dGame   the view used for rendering and coordinate conversion
+     */
     public J2dBase(Position position, int maxHealth, J2dGame j2dGame) {
         super(position, BASE_SIZE, BASE_SIZE, maxHealth);
         this.j2dGame = j2dGame;

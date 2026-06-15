@@ -9,20 +9,32 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-/*
- * Concrete CannonTower with Java2D rendering.
+/**
+ * Concrete {@link CannonTower} with Java2D rendering.
  *
- * Uses the tower_cannon.png sprite. Falls back to a gray rectangle
- * if the sprite cannot be loaded.
+ * <p>Uses the {@code tower_cannon.png} sprite, falling back to a grey rectangle if the
+ * sprite cannot be loaded.</p>
+ *
+ * @author Tower Defence team
  */
 public class J2dCannonTower extends CannonTower {
 
+    /** Fallback fill colour when the sprite cannot be loaded. */
     private static final Color FILL   = new Color(105, 105, 105);
+    /** Fallback border colour when the sprite cannot be loaded. */
     private static final Color BORDER = new Color(50, 50, 50);
 
+    /** The view used for graphics access and coordinate conversion. */
     private final J2dGame j2dGame;
+    /** The tower sprite, or {@code null} if it could not be loaded. */
     private final BufferedImage sprite;
 
+    /**
+     * Creates a Java2D cannon tower at the given position.
+     *
+     * @param position the build position in game-world coordinates
+     * @param j2dGame  the view used for rendering and coordinate conversion
+     */
     public J2dCannonTower(Position position, J2dGame j2dGame) {
         super(position, DEFAULT_RANGE, DEFAULT_DAMAGE, DEFAULT_FIRE_RATE, DEFAULT_COST,
               DEFAULT_SPLASH_RADIUS, DEFAULT_SPLASH_DAMAGE_FRACTION);

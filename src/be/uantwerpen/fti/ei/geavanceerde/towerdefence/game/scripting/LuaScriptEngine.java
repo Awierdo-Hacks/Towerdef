@@ -15,51 +15,51 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-/*
+/**
  * Wikkelt de LuaJ runtime voor enemy AI-scripts.
  *
- * HOT-RELOAD:
- *   Het script wordt geladen via de classpath-URL, maar het bestandspad op
- *   schijf wordt bijgehouden. Elke CHECK_INTERVAL_MS milliseconden controleert
- *   callUpdateEnemy() of het bestand gewijzigd is. Bij een wijziging wordt het
- *   script opnieuw geladen zonder het spel te herstarten.
+ * <p><strong>Hot-reload:</strong> het script wordt geladen via de classpath-URL,
+ * maar het bestandspad op schijf wordt bijgehouden. Elke {@code CHECK_INTERVAL_MS}
+ * milliseconden controleert {@link #callUpdateEnemy(Enemy, double)} of het bestand
+ * gewijzigd is; bij een wijziging wordt het script opnieuw geladen zonder het spel te
+ * herstarten. Dit werkt enkel als de applicatie direct vanuit het bestandssysteem
+ * draait (IDE / loose classpath); vanuit een JAR is hot-reload niet beschikbaar.</p>
  *
- *   Werkt enkel als de applicatie direct vanuit het bestandssysteem draait
- *   (IDE / loose classpath). Vanuit een JAR is hot-reload niet beschikbaar.
+ * <p><strong>Data-uitwisseling (Java ↔ Lua via {@code LuaTable}):</strong> Java vult
+ * vóór de aanroep {@code type}, {@code currentHealth}, {@code maxHealth},
+ * {@code healthPercent} en {@code speedMul} in. Lua schrijft eventueel
+ * {@code currentHealth}, {@code maxHealth} en {@code speedMul} terug, die daarna naar
+ * het {@code Enemy}-object worden gepropageerd.</p>
  *
- * DATA-UITWISSELING (Java ↔ Lua via LuaTable):
- *   Java vult vóór de aanroep:
- *     enemy.type          (string)  → "basic", "armored", "flying"
- *     enemy.currentHealth (number)  → huidig HP
- *     enemy.maxHealth     (number)  → maximaal HP
- *     enemy.healthPercent (number)  → currentHealth / maxHealth  (0.0–1.0)
- *     enemy.speedMul      (number)  → huidige snelheidsmultiplier
- *
- *   Lua schrijft terug (alleen deze drie worden door Java gelezen):
- *     enemy.currentHealth → enemy.setCurrentHealth()
- *     enemy.maxHealth     → enemy.setMaxHealth()
- *     enemy.speedMul      → enemy.setSpeedMultiplier()
+ * @author Tower Defence team
  */
 public class LuaScriptEngine {
 
+    /** Minimale tijd (ms) tussen twee controles op bestandswijzigingen. */
     private static final long CHECK_INTERVAL_MS = 500;
 
+    /** De LuaJ runtime-omgeving; wordt bij elke (her)load opnieuw aangemaakt. */
     private Globals globals;
+    /** {@code true} zodra een script succesvol geladen is. */
     private boolean loaded;
 
-    /* Bestandspad op schijf — null als hot-reload niet beschikbaar is. */
+    /** Bestandspad op schijf — {@code null} als hot-reload niet beschikbaar is. */
     private Path scriptFile;
 
-    /* Tijdstip (ms) van de laatste bekende versie van het script. */
+    /** Tijdstip (ms) van de laatste bekende versie van het script. */
     private long lastModified;
 
-    /* Tijdstip (ms) van de laatste controle op bestandswijzigingen. */
+    /** Tijdstip (ms) van de laatste controle op bestandswijzigingen. */
     private long lastCheckTime;
 
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
 
+    /**
+     * Maakt een nieuwe script-engine met een verse LuaJ runtime. Er is nog geen
+     * script geladen tot {@link #loadScript(String)} aangeroepen wordt.
+     */
     public LuaScriptEngine() {
         this.globals = JsePlatform.standardGlobals();
         this.loaded  = false;
@@ -69,21 +69,18 @@ public class LuaScriptEngine {
     // Script laden
     // -------------------------------------------------------------------------
 
-    /*
+    /**
      * Bepaalt het bestandspad en laadt het script.
      *
-     * HOT-RELOAD STRATEGIE:
-     *   1. Probeer eerst het bronbestand via de werkdirectory:
-     *        resources/<resourcePath>
-     *      Dit werkt wanneer de applicatie vanuit de projectroot draait (IntelliJ /
-     *      command-line). Bewerkingen aan het bronbestand worden dan direct opgepikt
-     *      door checkForChanges() — zonder rebuild.
+     * <p>Hot-reload strategie: eerst wordt het bronbestand via de werkdirectory
+     * ({@code resources/<resourcePath>}) geprobeerd — dit werkt wanneer de applicatie
+     * vanuit de projectroot draait en wijzigingen worden dan direct opgepikt door
+     * {@code checkForChanges()} zonder rebuild. Wordt het bronbestand niet gevonden,
+     * dan valt de engine terug op de classpath-URL; hot-reload werkt dan alleen als de
+     * URL naar een los bestand wijst (geen JAR-entry).</p>
      *
-     *   2. Als het bronbestand niet gevonden wordt, val dan terug op de
-     *      classpath-URL. Hot-reload werkt dan alleen als de URL naar een
-     *      los bestand wijst (geen JAR-entry).
-     *
-     * @param resourcePath pad relatief aan classpath-root, bijv. "scripts/enemy_ai.lua"
+     * @param resourcePath pad relatief aan de classpath-root, bijv.
+     *                     {@code "scripts/enemy_ai.lua"}
      */
     public void loadScript(String resourcePath) {
         // 1. Bronbestand via werkdirectory — werkt in IDE zonder rebuild
@@ -167,10 +164,14 @@ public class LuaScriptEngine {
     // updateEnemy aanroepen
     // -------------------------------------------------------------------------
 
-    /*
-     * Controleert eerst op bestandswijzigingen, dan roept het de Lua-functie
-     * "updateEnemy(enemyTable, deltaTime)" aan en schrijft gewijzigde waarden
-     * terug naar het enemy-object.
+    /**
+     * Controleert eerst op bestandswijzigingen en roept dan de Lua-functie
+     * {@code updateEnemy(enemyTable, deltaTime)} aan, waarna gewijzigde waarden
+     * teruggeschreven worden naar het {@code Enemy}-object. Doet niets als er geen
+     * script geladen is of als de functie niet bestaat.
+     *
+     * @param enemy     de vijand waarvan de toestand aan Lua wordt doorgegeven
+     * @param deltaTime verstreken tijd in seconden sinds het vorige frame
      */
     public void callUpdateEnemy(Enemy enemy, double deltaTime) {
         checkForChanges();

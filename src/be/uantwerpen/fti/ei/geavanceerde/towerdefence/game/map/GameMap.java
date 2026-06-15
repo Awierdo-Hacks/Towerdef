@@ -6,17 +6,17 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 import java.util.ArrayList;
 import java.util.List;
 
-/*
+/**
  * Represents a single level's map: the tile grid, enemy paths, build spots,
  * spawn point and base position.
  *
- * LOADING:
- *   GameMap is constructed with a ConfigManager that has already loaded a
- *   level .properties file (e.g. resources/levels/level1.properties).
- *   The constructor parses all map data from that config and builds the
- *   internal tile grid.
+ * <p><strong>Loading:</strong> a {@code GameMap} is constructed with a
+ * {@code ConfigManager} that has already loaded a level {@code .properties} file
+ * (e.g. {@code resources/levels/level1.properties}). The constructor parses all map
+ * data from that config and builds the internal tile grid.</p>
  *
- * LEVEL FILE FORMAT (example):
+ * <p><strong>Level file format (example):</strong></p>
+ * <pre>
  *   map.width=20
  *   map.height=15
  *   spawn.x=0.0
@@ -26,57 +26,55 @@ import java.util.List;
  *   path.waypoints=0.0,7.0;5.0,7.0;5.0,3.0;15.0,3.0;15.0,12.0;19.0,12.0;19.0,7.0
  *   path.flying.waypoints=0.0,7.0;10.0,7.0;19.0,7.0     (optional)
  *   build.spots=3.0,5.0;3.0,9.0;7.0,1.0;7.0,5.0
+ * </pre>
  *
- * GRID:
- *   The tile grid is a 2D array [width][height] where each tile covers a
- *   1x1 game-world area. Tile centres are at (x+0.5, y+0.5).
- *   After loading, the grid has:
- *     - GRASS  for empty tiles
- *     - PATH   for every tile along the enemy route segments
- *     - BUILD_SPOT for designated tower placement locations
- *     - SPAWN  at the enemy spawn point
- *     - BASE   at the player's base
+ * <p><strong>Grid:</strong> the tile grid is a 2D array {@code [width][height]} where
+ * each tile covers a 1×1 game-world area, with tile centres at {@code (x+0.5, y+0.5)}.
+ * After loading, tiles are {@code GRASS} (empty), {@code PATH} (route segments),
+ * {@code BUILD_SPOT} (tower placement), {@code SPAWN} and {@code BASE}.</p>
  *
- * PATHS:
- *   enemyPath — ground route used by BasicEnemy and ArmoredEnemy
- *   flyingPath — optional aerial route for FlyingEnemy. If the level file
- *                does not define path.flying.waypoints, flyingPath is null
- *                and flying enemies use the ground path instead.
+ * <p><strong>Paths:</strong> {@code enemyPath} is the ground route used by
+ * {@code BasicEnemy} and {@code ArmoredEnemy}; {@code flyingPath} is an optional
+ * aerial route for {@code FlyingEnemy}. If the level file does not define
+ * {@code path.flying.waypoints}, the flying path is absent and flying enemies use the
+ * ground path instead.</p>
+ *
+ * @author Tower Defence team
  */
 public class GameMap {
 
-    // Tile grid [x][y] — each tile is 1x1 game-world units
+    /** Tile grid {@code [x][y]} — each tile is 1×1 game-world units. */
     private Tile[][] grid;
 
-    // Grid dimensions in tiles (also the game-world size in units)
+    /** Grid width in tiles (also the game-world width in units). */
     private int width;
+    /** Grid height in tiles (also the game-world height in units). */
     private int height;
 
-    // Ground path — from spawn to base, used by BasicEnemy and ArmoredEnemy
+    /** Ground path — from spawn to base, used by {@code BasicEnemy} and {@code ArmoredEnemy}. */
     private Path enemyPath;
 
-    // Optional aerial path — used by FlyingEnemy if present, otherwise null
+    /** Optional aerial path — used by {@code FlyingEnemy} if present, otherwise {@code null}. */
     private Path flyingPath;
 
-    // Where enemies appear on the map
+    /** Where enemies appear on the map. */
     private Position spawnPoint;
 
-    // Where the player's base is located (last waypoint of the path)
+    /** Where the player's base is located (last waypoint of the path). */
     private Position basePosition;
 
-    // Designated tower placement locations
+    /** Designated tower placement locations. */
     private List<Position> buildSpots;
 
     // -------------------------------------------------------------------------
     // Construction — loads everything from a level config file
     // -------------------------------------------------------------------------
 
-    /*
-     * Creates a GameMap by reading all map data from the given level config.
+    /**
+     * Creates a {@code GameMap} by reading all map data from the given level config.
      *
-     * Usage:
-     *   ConfigManager levelCfg = new ConfigManager("levels/level1.properties");
-     *   GameMap map = new GameMap(levelCfg);
+     * @param levelConfig a config manager that has loaded the level's
+     *                    {@code .properties} file
      */
     public GameMap(ConfigManager levelConfig) {
         loadFromConfig(levelConfig);
@@ -308,20 +306,35 @@ public class GameMap {
     // Queries — used by the game loop and input handler
     // -------------------------------------------------------------------------
 
-    /* Checks if grid coordinates are within the map bounds. */
+    /**
+     * Returns whether the given grid coordinates are within the map bounds.
+     *
+     * @param x the grid x index
+     * @param y the grid y index
+     * @return {@code true} if {@code (x, y)} is inside the grid
+     */
     public boolean isInBounds(int x, int y) {
         return x >= 0 && x < width && y >= 0 && y < height;
     }
 
-    /* Returns the tile at the given grid coordinates, or null if out of bounds. */
+    /**
+     * Returns the tile at the given grid coordinates.
+     *
+     * @param x the grid x index
+     * @param y the grid y index
+     * @return the tile, or {@code null} if the coordinates are out of bounds
+     */
     public Tile getTile(int x, int y) {
         if (!isInBounds(x, y)) return null;
         return grid[x][y];
     }
 
-    /*
-     * Returns the tile at a game-world position (converts doubles to grid indices).
-     * Used by the input handler when the player clicks to place a tower.
+    /**
+     * Returns the tile at a game-world position, converting the doubles to grid
+     * indices. Used by the input handler when the player clicks to place a tower.
+     *
+     * @param worldPos the game-world position
+     * @return the tile at that position, or {@code null} if out of bounds
      */
     public Tile getTileAt(Position worldPos) {
         int tx = (int) worldPos.getX();
@@ -329,9 +342,12 @@ public class GameMap {
         return getTile(tx, ty);
     }
 
-    /*
-     * Checks if a tower can be placed at the given game-world position.
-     * True only if the tile exists and its type is BUILD_SPOT.
+    /**
+     * Returns whether a tower can be placed at the given game-world position. True
+     * only if the tile exists and its type is {@link TileType#BUILD_SPOT}.
+     *
+     * @param worldPos the game-world position to test
+     * @return {@code true} if a tower may be built there
      */
     public boolean canBuildAt(Position worldPos) {
         Tile tile = getTileAt(worldPos);
@@ -342,11 +358,52 @@ public class GameMap {
     // Getters
     // -------------------------------------------------------------------------
 
+    /**
+     * Returns the map width in tiles.
+     *
+     * @return the width in tiles
+     */
     public int         getWidth()        { return width; }
+
+    /**
+     * Returns the map height in tiles.
+     *
+     * @return the height in tiles
+     */
     public int         getHeight()       { return height; }
+
+    /**
+     * Returns the raw tile grid {@code [x][y]}.
+     *
+     * @return the tile grid
+     */
     public Tile[][]    getGrid()         { return grid; }
+
+    /**
+     * Returns the ground path enemies follow from spawn to base.
+     *
+     * @return the ground path
+     */
     public Path        getEnemyPath()    { return enemyPath; }
+
+    /**
+     * Returns the optional aerial path for flying enemies.
+     *
+     * @return the flying path, or {@code null} if the level defines none
+     */
     public Path        getFlyingPath()   { return flyingPath; }
+
+    /**
+     * Returns whether this level defines a separate aerial path.
+     *
+     * @return {@code true} if a flying path is present
+     */
     public boolean     hasFlyingPath()   { return flyingPath != null; }
+
+    /**
+     * Returns the position of the player's base.
+     *
+     * @return the base position in game-world coordinates
+     */
     public Position    getBasePosition() { return basePosition; }
 }

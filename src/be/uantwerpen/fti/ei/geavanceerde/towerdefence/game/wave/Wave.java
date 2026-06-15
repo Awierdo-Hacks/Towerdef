@@ -4,24 +4,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/*
+/**
  * Stelt één golf van vijanden voor.
  *
- * Een golf bevat een geordende lijst van EnemyEntry-objecten. Elke entry
- * geeft aan welk type vijand gespawnd moet worden en hoeveel keer.
+ * <p>Een golf bevat een geordende lijst van {@link EnemyEntry}-objecten. Elke entry
+ * geeft aan welk type vijand gespawnd moet worden en hoeveel keer. Voorbeeld:
+ * {@code wave.2.enemies=basic:8,armored:2} levert {@code EnemyEntry("basic", 8)} en
+ * {@code EnemyEntry("armored", 2)} op.</p>
  *
- * Voorbeeld: wave.2.enemies=basic:8,armored:2
- *   → EnemyEntry("basic",  8)
- *   → EnemyEntry("armored", 2)
+ * <p>De {@code WaveManager} roept {@link #tick(double)} aan elke frame. Die telt de
+ * spawn-timer af en geeft het type terug van de volgende vijand zodra het interval
+ * verstreken is; als de golf klaar is geeft {@code tick()} een lege string terug.</p>
  *
- * De WaveManager roept tick(deltaTime) aan elke frame. tick() telt de
- * spawn-timer af en geeft het type terug van de volgende vijand zodra het
- * interval verstreken is. Als de golf klaar is, geeft tick() een lege Optional terug.
+ * <p>Volgorde van spawnen: alle entries worden uitgebreid tot een vlakke lijst
+ * (bijvoorbeeld 8× {@code "basic"}, dan 2× {@code "armored"}). Vijanden worden één
+ * voor één gespawnd met {@code SPAWN_INTERVAL} seconden ertussen.</p>
  *
- * Volgorde van spawnen:
- *   Alle entries worden uitgebreid tot een vlakke lijst (bijv. 8x "basic",
- *   dan 2x "armored"). Vijanden worden één voor één gespawnd met
- *   SPAWN_INTERVAL seconden ertussen.
+ * @author Tower Defence team
  */
 public class Wave {
 
@@ -32,21 +31,40 @@ public class Wave {
     // Inner class: één enemytype + hoeveelheid
     // -------------------------------------------------------------------------
 
-    /*
-     * Beschrijft één groep vijanden binnen een golf.
-     * type: "basic", "armored" of "flying"
-     * count: het aantal te spawnen exemplaren
+    /**
+     * Beschrijft één groep vijanden binnen een golf: een type
+     * ({@code "basic"}, {@code "armored"} of {@code "flying"}) en het aantal te
+     * spawnen exemplaren.
      */
     public static class EnemyEntry {
+        /** Het vijandtype-id ({@code "basic"}, {@code "armored"} of {@code "flying"}). */
         private final String type;
+        /** Het aantal te spawnen exemplaren van dit type. */
         private final int    count;
 
+        /**
+         * Maakt een nieuwe entry aan.
+         *
+         * @param type  het vijandtype-id
+         * @param count het aantal te spawnen exemplaren
+         */
         public EnemyEntry(String type, int count) {
             this.type  = type;
             this.count = count;
         }
 
+        /**
+         * Geeft het vijandtype-id terug.
+         *
+         * @return het type-id
+         */
         public String getType()  { return type; }
+
+        /**
+         * Geeft het aantal te spawnen exemplaren terug.
+         *
+         * @return het aantal
+         */
         public int    getCount() { return count; }
     }
 
@@ -57,7 +75,7 @@ public class Wave {
     /** Vlakke spawn-wachtrij: één string per te spawnen vijand. */
     private final List<String> spawnQueue;
 
-    /** Index van de volgende te spawnen vijand in spawnQueue. */
+    /** Index van de volgende te spawnen vijand in {@link #spawnQueue}. */
     private int spawnIndex;
 
     /** Aftelklok tot de volgende spawn. */
@@ -67,13 +85,14 @@ public class Wave {
     // Constructor
     // -------------------------------------------------------------------------
 
-    /*
-     * Bouwt een golf op uit een lijst van EnemyEntry-objecten.
+    /**
+     * Bouwt een golf op uit een lijst van {@link EnemyEntry}-objecten.
      *
-     * De entries worden uitgebreid tot een vlakke spawnQueue:
-     *   [basic, basic, basic, armored, armored, ...]
+     * <p>De entries worden uitgebreid tot een vlakke spawn-wachtrij (bijvoorbeeld
+     * {@code [basic, basic, basic, armored, ...]}). De eerste vijand spawnt direct
+     * ({@code timer = 0}).</p>
      *
-     * De eerste vijand spawnt direct (timer = 0).
+     * @param entries de groepen vijanden waaruit deze golf bestaat
      */
     public Wave(List<EnemyEntry> entries) {
         this.spawnQueue = new ArrayList<>();
@@ -93,14 +112,17 @@ public class Wave {
     // Update
     // -------------------------------------------------------------------------
 
-    /*
-     * Roep aan elke frame met deltaTime in seconden.
+    /**
+     * Verwerkt de spawn-timer voor dit frame en geeft eventueel het volgende
+     * vijandtype terug.
      *
-     * Retourneert het type van de volgende te spawnen vijand als het
-     * spawn-interval verstreken is, anders een lege string ("").
+     * <p>Retourneert het type van de volgende te spawnen vijand als het
+     * spawn-interval verstreken is, anders een lege string ({@code ""}). Geeft ook
+     * {@code ""} terug als de golf al volledig gespawnd is (controleer dit met
+     * {@link #isFinished()}).</p>
      *
-     * Retourneert "" als de golf al volledig gespawnd is (gebruik
-     * isFinished() om dit te controleren).
+     * @param deltaTime verstreken tijd in seconden sinds het vorige frame
+     * @return het te spawnen vijandtype, of {@code ""} als er niets spawnt dit frame
      */
     public String tick(double deltaTime) {
         // Golf is al klaar
@@ -122,22 +144,38 @@ public class Wave {
     // Queries
     // -------------------------------------------------------------------------
 
-    /** Geeft true als alle vijanden in deze golf gespawnd zijn. */
+    /**
+     * Geeft terug of alle vijanden in deze golf gespawnd zijn.
+     *
+     * @return {@code true} als de golf volledig gespawnd is
+     */
     public boolean isFinished() {
         return spawnIndex >= spawnQueue.size();
     }
 
-    /** Totaal aantal te spawnen vijanden in deze golf. */
+    /**
+     * Geeft het totale aantal te spawnen vijanden in deze golf terug.
+     *
+     * @return het totale aantal vijanden
+     */
     public int getTotalEnemies() {
         return spawnQueue.size();
     }
 
-    /** Aantal vijanden dat nog gespawnd moet worden. */
+    /**
+     * Geeft het aantal vijanden terug dat nog gespawnd moet worden.
+     *
+     * @return het resterende aantal spawns
+     */
     public int getRemainingSpawns() {
         return spawnQueue.size() - spawnIndex;
     }
 
-    /** Alleen-lezen view op de vlakke spawn-wachtrij (voor tests/debug). */
+    /**
+     * Geeft een alleen-lezen view op de vlakke spawn-wachtrij (voor tests/debug).
+     *
+     * @return een onveranderlijke lijst met één type-id per te spawnen vijand
+     */
     public List<String> getSpawnQueue() {
         return Collections.unmodifiableList(spawnQueue);
     }

@@ -27,29 +27,28 @@ import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 
-/*
- * The Java2D visualization layer — manages the game window, coordinate
- * conversion, and the rendering pipeline.
+/**
+ * The Java2D visualization layer — manages the game window, coordinate conversion,
+ * and the rendering pipeline. This is the concrete {@link GameView} implementation.
  *
- * WINDOW:
- *   Uses a JFrame with an AWT Canvas and double-buffered BufferStrategy.
- *   All drawing goes through render() which is called once per frame.
+ * <p><strong>Window:</strong> uses a {@code JFrame} with an AWT {@code Canvas} and a
+ * double-buffered {@code BufferStrategy}. All drawing goes through {@link #render()},
+ * which is called once per frame.</p>
  *
- * COORDINATE CONVERSION:
- *   The game logic works in game-world units (e.g. 20.0 x 15.0).
- *   J2dGame converts these to screen pixels for rendering, and converts
- *   screen pixels back to game-world coordinates for mouse input.
+ * <p><strong>Coordinate conversion:</strong> the game logic works in game-world units
+ * (e.g. 20.0 × 15.0). {@code J2dGame} converts these to screen pixels for rendering,
+ * and converts screen pixels back to game-world coordinates for mouse input.</p>
  *
- * RENDER PIPELINE:
- *   1. Acquire Graphics2D from BufferStrategy
- *   2. Store it in g2d so J2d entities can access it via getGraphics2D()
- *   3. Clear screen, draw map tiles
- *   4. Call render() on all alive entities (they use g2d internally)
- *   5. Draw HUD (score, gold)
- *   6. Dispose graphics and flip buffer
+ * <p><strong>Render pipeline:</strong> acquire {@code Graphics2D} from the buffer
+ * strategy, store it so J2d entities can access it via {@link #getGraphics2D()}, clear
+ * the screen and draw map tiles, call {@code render()} on all alive entities, draw the
+ * HUD, then dispose the graphics and flip the buffer.</p>
  *
- * J2d entities hold a reference to this J2dGame object so they can call
- * getGraphics2D() and toScreenX/Y() inside their render() method.
+ * <p>J2d entities hold a reference to this {@code J2dGame} object so they can call
+ * {@link #getGraphics2D()} and {@link #toScreenX(double)} / {@link #toScreenY(double)}
+ * inside their {@code render()} method.</p>
+ *
+ * @author Tower Defence team
  */
 public class J2dGame implements GameView {
 
@@ -57,21 +56,21 @@ public class J2dGame implements GameView {
     // Window
     // -------------------------------------------------------------------------
 
-    private JFrame frame;
-    private Canvas canvas;
-    private BufferStrategy bufferStrategy;
+    // The JFrame and Canvas are only needed during construction (window setup),
+    // so they live as locals there; only the BufferStrategy is kept for render().
+    private final BufferStrategy bufferStrategy;
 
     // -------------------------------------------------------------------------
     // Dimensions
     // -------------------------------------------------------------------------
 
     // Screen size in pixels
-    private int windowWidth;
-    private int windowHeight;
+    private final int windowWidth;
+    private final int windowHeight;
 
     // Game world size in game units (e.g. 20.0 x 15.0)
-    private double gameWidth;
-    private double gameHeight;
+    private final double gameWidth;
+    private final double gameHeight;
 
     // -------------------------------------------------------------------------
     // Current graphics context — set at the start of each render() call
@@ -84,7 +83,7 @@ public class J2dGame implements GameView {
     // Input
     // -------------------------------------------------------------------------
 
-    private InputHandler inputHandler;
+    private final InputHandler inputHandler;
 
     // -------------------------------------------------------------------------
     // Tile colours
@@ -123,12 +122,16 @@ public class J2dGame implements GameView {
     private static final Font   FONT_OVERLAY    = new Font("SansSerif", Font.BOLD, 48);
     private static final Font   FONT_SUB        = new Font("SansSerif", Font.PLAIN, 20);
 
-    // Visuele vergroting van sprites t.o.v. hun logische hitbox. Puur cosmetisch:
-    // het venster schaalt alles al evenredig mee (toScreenWidth), maar de logische
-    // groottes (enemy 0.6, projectiel 0.2, ...) ogen klein in een tile. Deze factor
-    // tekent de sprite groter en GECENTREERD op dezelfde positie, terwijl width/height
-    // — en dus collidesWith / gameplay / de bewust kleine flying-hitbox — onaangeroerd
-    // blijven. Wordt door de J2d-entities gebruikt in hun render().
+    /**
+     * Visuele vergroting van sprites t.o.v. hun logische hitbox (puur cosmetisch).
+     *
+     * <p>Het venster schaalt alles al evenredig mee ({@link #toScreenWidth(double)}),
+     * maar de logische groottes (enemy 0.6, projectiel 0.2, ...) ogen klein in een
+     * tile. Deze factor tekent de sprite groter en gecentreerd op dezelfde positie,
+     * terwijl {@code width}/{@code height} — en dus {@code collidesWith} / gameplay /
+     * de bewust kleine flying-hitbox — onaangeroerd blijven. Wordt door de
+     * J2d-entities gebruikt in hun {@code render()}.</p>
+     */
     public static final double SPRITE_SCALE = 1.5;
 
     // Floating combat text (ECS) — small bold numbers above entities.
@@ -142,12 +145,14 @@ public class J2dGame implements GameView {
     // Construction
     // -------------------------------------------------------------------------
 
-    /*
+    /**
      * Creates the game window and sets up the rendering canvas.
      *
-     * Reads window/game dimensions from the main game config:
-     *   window.width, window.height  (pixels)
-     *   game.width, game.height      (game-world units)
+     * <p>Reads window/game dimensions from the main game config: {@code window.width}
+     * / {@code window.height} (pixels) and {@code game.width} / {@code game.height}
+     * (game-world units).</p>
+     *
+     * @param config the loaded game configuration
      */
     public J2dGame(ConfigManager config) {
         windowWidth  = config.getInt("window.width", 800);
@@ -156,12 +161,12 @@ public class J2dGame implements GameView {
         gameHeight   = config.getDouble("game.height", 15.0);
 
         // --- JFrame ---
-        frame = new JFrame(config.getString("window.title", "Tower Defence"));
+        JFrame frame = new JFrame(config.getString("window.title", "Tower Defence"));
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
 
         // --- Canvas for high-performance rendering ---
-        canvas = new Canvas();
+        Canvas canvas = new Canvas();
         canvas.setPreferredSize(new Dimension(windowWidth, windowHeight));
         canvas.setFocusable(true);
         frame.add(canvas);
@@ -185,32 +190,62 @@ public class J2dGame implements GameView {
     // Coordinate conversion — game world ↔ screen pixels
     // -------------------------------------------------------------------------
 
-    /* Converts a game-world X coordinate to screen pixel X. */
+    /**
+     * Converts a game-world X coordinate to a screen pixel X.
+     *
+     * @param gameX the X coordinate in game-world units
+     * @return the corresponding screen pixel X
+     */
     public int toScreenX(double gameX) {
         return (int) (gameX * windowWidth / gameWidth);
     }
 
-    /* Converts a game-world Y coordinate to screen pixel Y. */
+    /**
+     * Converts a game-world Y coordinate to a screen pixel Y.
+     *
+     * @param gameY the Y coordinate in game-world units
+     * @return the corresponding screen pixel Y
+     */
     public int toScreenY(double gameY) {
         return (int) (gameY * windowHeight / gameHeight);
     }
 
-    /* Converts a game-world width to screen pixel width. */
+    /**
+     * Converts a game-world width to a screen pixel width.
+     *
+     * @param w the width in game-world units
+     * @return the corresponding pixel width
+     */
     public int toScreenWidth(double w) {
         return (int) (w * windowWidth / gameWidth);
     }
 
-    /* Converts a game-world height to screen pixel height. */
+    /**
+     * Converts a game-world height to a screen pixel height.
+     *
+     * @param h the height in game-world units
+     * @return the corresponding pixel height
+     */
     public int toScreenHeight(double h) {
         return (int) (h * windowHeight / gameHeight);
     }
 
-    /* Converts a screen pixel X to game-world X (for mouse input). */
+    /**
+     * Converts a screen pixel X to a game-world X (for mouse input).
+     *
+     * @param screenX the screen pixel X
+     * @return the corresponding game-world X
+     */
     public double toGameX(int screenX) {
         return screenX * gameWidth / windowWidth;
     }
 
-    /* Converts a screen pixel Y to game-world Y (for mouse input). */
+    /**
+     * Converts a screen pixel Y to a game-world Y (for mouse input).
+     *
+     * @param screenY the screen pixel Y
+     * @return the corresponding game-world Y
+     */
     public double toGameY(int screenY) {
         return screenY * gameHeight / windowHeight;
     }
@@ -219,12 +254,13 @@ public class J2dGame implements GameView {
     // Render pipeline — called once per frame by the game loop
     // -------------------------------------------------------------------------
 
-    /*
+    /**
      * Draws everything: map tiles, entities, and HUD.
      *
-     * Sets this.g2d before drawing so J2d entities can call getGraphics2D()
-     * inside their render() methods.
+     * <p>Sets the current {@code Graphics2D} context before drawing so J2d entities can
+     * call {@link #getGraphics2D()} inside their {@code render()} methods.</p>
      */
+    @Override
     public void render() {
         g2d = (Graphics2D) bufferStrategy.getDrawGraphics();
 
@@ -605,9 +641,11 @@ public class J2dGame implements GameView {
     // Accessors
     // -------------------------------------------------------------------------
 
-    /*
-     * Returns the current Graphics2D context.
-     * Only valid during a render() call — J2d entities use this in their render().
+    /**
+     * Returns the current {@code Graphics2D} context. Only valid during a
+     * {@link #render()} call — J2d entities use this inside their own {@code render()}.
+     *
+     * @return the active graphics context for this frame
      */
     public Graphics2D getGraphics2D()  { return g2d; }
 

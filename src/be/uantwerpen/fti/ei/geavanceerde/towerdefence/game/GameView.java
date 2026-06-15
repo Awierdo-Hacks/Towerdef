@@ -1,41 +1,85 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game;
 
-/*
- * Abstraction for the visualization layer, used by Game to render and read input
- * without depending on any specific graphics library (Java2D, OpenGL, etc.).
+/**
+ * Abstraction for the visualization layer, used by {@link Game} to render and read
+ * input without depending on any specific graphics library (Java2D, OpenGL, etc.).
  *
- * J2dGame implements this interface. The Game class only sees GameView,
- * never the concrete J2d classes — this enforces the game/visualization separation.
+ * <p>{@code J2dGame} implements this interface. The {@code Game} class only ever sees
+ * {@code GameView}, never the concrete J2d classes — this enforces the
+ * game/visualization separation. The game loop in {@code Game.start()} calls
+ * {@link #render()} once per frame and queries input state through the other
+ * methods.</p>
  *
- * The game loop in Game.start() calls render() once per frame and queries
- * input state through the other methods.
+ * <p>The {@code was...Pressed()} / {@link #wasMouseClicked()} methods follow a
+ * <em>consume-once</em> pattern: they return {@code true} exactly once after the
+ * event occurs, then reset to {@code false}.</p>
+ *
+ * @author Tower Defence team
  */
 public interface GameView {
 
-    /* Draws the current frame: map, entities, HUD. */
+    /** Draws the current frame: map, entities, and HUD. */
     void render();
 
-    /* True once after the player clicks, then resets. Consume-once pattern. */
+    /**
+     * Returns whether the player clicked the mouse since the last query
+     * (consume-once).
+     *
+     * @return {@code true} once per click
+     */
     boolean wasMouseClicked();
 
-    /* True once after the player presses the pause key. Consume-once pattern. */
+    /**
+     * Returns whether the player pressed the pause key since the last query
+     * (consume-once).
+     *
+     * @return {@code true} once per press
+     */
     boolean wasPausePressed();
 
-    /* True once after the player presses the start/confirm key (S). Consume-once pattern. */
+    /**
+     * Returns whether the player pressed the start/confirm key (S) since the last
+     * query (consume-once).
+     *
+     * @return {@code true} once per press
+     */
     boolean wasStartPressed();
 
-    /* True once after the player presses the quit key (Q). Consume-once pattern. */
+    /**
+     * Returns whether the player pressed the quit key (Q) since the last query
+     * (consume-once).
+     *
+     * @return {@code true} once per press
+     */
     boolean wasQuitPressed();
 
-    /* True once after the player presses the repair key (R). Consume-once pattern. */
+    /**
+     * Returns whether the player pressed the repair key (R) since the last query
+     * (consume-once).
+     *
+     * @return {@code true} once per press
+     */
     boolean wasRepairPressed();
 
-    /* Mouse X position in game-world coordinates. */
+    /**
+     * Returns the mouse X position in game-world coordinates.
+     *
+     * @return the mouse X in game-world units
+     */
     double getMouseGameX();
 
-    /* Mouse Y position in game-world coordinates. */
+    /**
+     * Returns the mouse Y position in game-world coordinates.
+     *
+     * @return the mouse Y in game-world units
+     */
     double getMouseGameY();
 
-    /* Currently selected tower type: 0=none, 1=Arrow, 2=Cannon, 3=Ice. */
+    /**
+     * Returns the currently selected tower type ({@code 0} = none, {@code 1} = arrow,
+     * {@code 2} = cannon, {@code 3} = ice).
+     *
+     * @return the selected tower hotkey number
+     */
     int getSelectedTower();
 }

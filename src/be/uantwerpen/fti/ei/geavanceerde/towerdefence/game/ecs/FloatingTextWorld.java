@@ -1,31 +1,36 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs;
 
-/*
- * DATA-ORIENTED / ECS datastore for short-lived floating combat text.
+/**
+ * Data-oriented / ECS datastore for short-lived floating combat text.
  *
- * This is the project's required Entity-Component-System subsystem, built
- * deliberately in the OPPOSITE style of the rest of the game (which is OOP:
- * each Enemy/Tower/Projectile is an object with virtual update()/render()).
+ * <p>This is the project's required Entity-Component-System subsystem, built
+ * deliberately in the opposite style of the rest of the game (which is OOP: each
+ * {@code Enemy}/{@code Tower}/{@code Projectile} is an object with virtual
+ * {@code update()}/{@code render()}).</p>
  *
- *   - ENTITY     : just an int index (a slot in the arrays below). There is no
- *                  "FloatingText" object with behaviour.
- *   - COMPONENTS : plain data laid out as parallel arrays (Structure-of-Arrays).
- *                  Each field of every entity lives contiguously in its own array.
- *   - SYSTEMS    : stateless logic classes (MovementSystem, LifetimeSystem, and
- *                  the rendering done in j2d) that sweep these arrays by index.
- *                  No inheritance or per-entity polymorphism.
+ * <ul>
+ *   <li><strong>Entity</strong>: just an {@code int} index (a slot in the arrays
+ *       below). There is no {@code FloatingText} object with behaviour.</li>
+ *   <li><strong>Components</strong>: plain data laid out as parallel arrays
+ *       (Structure-of-Arrays); each field of every entity lives contiguously in its
+ *       own array.</li>
+ *   <li><strong>Systems</strong>: stateless logic classes ({@code MovementSystem},
+ *       {@code LifetimeSystem}, and the rendering done in {@code j2d}) that sweep
+ *       these arrays by index — no inheritance or per-entity polymorphism.</li>
+ * </ul>
  *
- * The arrays are package-private so the systems in this package can operate on
- * the data directly (typical data-oriented style), while the rest of the program
- * only sees read-only index accessors.
+ * <p>The component arrays are package-private so the systems in this package can
+ * operate on the data directly (typical data-oriented style), while the rest of the
+ * program only sees read-only index accessors. No {@code java.awt}/{@code javax.swing}
+ * here — this stays in the {@code game} package; the actual drawing is done by
+ * {@code J2dGame}, which reads the accessors below.</p>
  *
- * No java.awt / javax.swing here — this stays in the game/ package. The actual
- * drawing is done by J2dGame, which reads the accessors below.
+ * <p>Usage: floating numbers above enemies on hit, and gold popups on kill. The game
+ * stores only the raw amount plus a semantic kind; the renderer formats the label
+ * (e.g. {@code "30"} or {@code "+10g"}) and picks the colour. Texts drift upward and
+ * fade out (alpha derived from age/lifetime).</p>
  *
- * Usage: floating numbers above enemies on hit, and gold popups on kill. The
- * game stores only the raw amount + a semantic kind; the renderer formats the
- * label (e.g. "30" or "+10g") and picks the colour. They drift upward (vy) and
- * fade out (alpha derived from age/lifetime).
+ * @author Tower Defence team
  */
 public class FloatingTextWorld {
 
@@ -54,18 +59,27 @@ public class FloatingTextWorld {
     /** Number of currently alive entities; live slots are [0, count). */
     int count = 0;
 
+    /** Creates an empty floating-text world with a fixed component capacity. */
+    public FloatingTextWorld() {
+    }
+
     // -------------------------------------------------------------------------
     // Spawning / clearing
     // -------------------------------------------------------------------------
 
-    /*
+    /**
      * Spawns one floating text at the given game-world position.
      *
-     * The caller supplies a semantic kind (DAMAGE / REWARD), never a colour —
-     * how each kind is rendered is decided entirely by the visualization layer.
+     * <p>The caller supplies a semantic kind ({@link FloatingTextKind#DAMAGE} /
+     * {@link FloatingTextKind#REWARD}), never a colour — how each kind is rendered is
+     * decided entirely by the visualization layer. The call is silently ignored when
+     * the world is full (count equals capacity), keeping the fixed-size storage
+     * trivial and allocation-free during play.</p>
      *
-     * Silently ignored when the world is full (count == CAPACITY) — keeps the
-     * fixed-size storage trivial and allocation-free during play.
+     * @param worldX   the game-world X position of the text
+     * @param worldY   the game-world Y position of the text
+     * @param amount   the raw amount (damage or gold) to display
+     * @param textKind the semantic category of this text
      */
     public void spawn(double worldX, double worldY, double amount, FloatingTextKind textKind) {
         if (count >= CAPACITY) {
@@ -92,13 +106,53 @@ public class FloatingTextWorld {
     // to the package so callers cannot mutate the data store directly.
     // -------------------------------------------------------------------------
 
+    /**
+     * Returns the number of currently alive floating texts. Valid indices are
+     * {@code [0, count)}.
+     *
+     * @return the number of live texts
+     */
     public int             getCount()      { return count; }
+
+    /**
+     * Returns the game-world X position of the text at the given index.
+     *
+     * @param i the entity index in {@code [0, count)}
+     * @return the X position
+     */
     public double          getX(int i)     { return x[i]; }
+
+    /**
+     * Returns the game-world Y position of the text at the given index.
+     *
+     * @param i the entity index in {@code [0, count)}
+     * @return the Y position
+     */
     public double          getY(int i)     { return y[i]; }
+
+    /**
+     * Returns the raw amount (damage or gold) of the text at the given index.
+     *
+     * @param i the entity index in {@code [0, count)}
+     * @return the raw display amount
+     */
     public double          getValue(int i) { return value[i]; }
+
+    /**
+     * Returns the semantic kind of the text at the given index.
+     *
+     * @param i the entity index in {@code [0, count)}
+     * @return the semantic category
+     */
     public FloatingTextKind getKind(int i)  { return kind[i]; }
 
-    /* Fade factor 1.0 (fresh) → 0.0 (expired), clamped to [0, 1]. */
+    /**
+     * Returns the fade factor of the text at the given index: {@code 1.0} when fresh,
+     * decreasing to {@code 0.0} when expired, clamped to {@code [0, 1]}.
+     *
+     * @param i the entity index in {@code [0, count)}
+     * @return the alpha/fade factor in {@code [0, 1]}
+     */
     public double getAlpha(int i) {
         double a = 1.0 - (age[i] / lifetime[i]);
         if (a < 0.0) return 0.0;

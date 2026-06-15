@@ -6,30 +6,28 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 
-/*
+/**
  * Handles all keyboard and mouse input for the Java2D visualization.
  *
- * KEYBOARD:
- *   1 / 2 / 3  — select tower type (Arrow / Cannon / Ice)
- *   Escape      — deselect tower
- *   P           — toggle pause
- *   S           — start / confirm (menu, next level, play again)
- *   Q           — quit (menu, end screens)
- *   R           — repair base (volledig herstel tegen goud)
+ * <p><strong>Keyboard:</strong> {@code 1}/{@code 2}/{@code 3} select a tower type
+ * (Arrow / Cannon / Ice), Escape deselects, {@code P} toggles pause, {@code S} is
+ * start/confirm (menu, next level, play again), {@code Q} quits, and {@code R} repairs
+ * the base for gold.</p>
  *
- * MOUSE:
- *   Left click  — place the selected tower at the clicked map position
- *   Movement    — tracked for hover effects and HUD feedback
+ * <p><strong>Mouse:</strong> a left click places the selected tower at the clicked map
+ * position; movement is tracked for hover effects and HUD feedback.</p>
  *
- * The game loop reads input state each frame through the getter methods.
- * Mouse clicks are consumed after reading (wasMouseClicked() returns true once).
+ * <p>The game loop reads input state each frame through the getter methods. Single
+ * events are consumed after reading (e.g. {@link #wasMouseClicked()} returns
+ * {@code true} once). This handler is attached to the {@code J2dGame} canvas in the
+ * {@code J2dGame} constructor.</p>
  *
- * Attached to the J2dGame canvas in J2dGame's constructor.
+ * @author Tower Defence team
  */
 public class InputHandler implements KeyListener, MouseListener, MouseMotionListener {
 
     // Reference to J2dGame for coordinate conversion (screen → game world)
-    private J2dGame j2dGame;
+    private final J2dGame j2dGame;
 
     // -------------------------------------------------------------------------
     // Key state
@@ -63,6 +61,12 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
     // Construction
     // -------------------------------------------------------------------------
 
+    /**
+     * Creates an input handler bound to the given game view, used for converting
+     * screen coordinates to game-world coordinates.
+     *
+     * @param j2dGame the view used for screen-to-game coordinate conversion
+     */
     public InputHandler(J2dGame j2dGame) {
         this.j2dGame = j2dGame;
     }
@@ -136,9 +140,11 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
     // Getters — called by the game loop each frame
     // -------------------------------------------------------------------------
 
-    /*
-     * Returns true once after the player clicks, then resets to false.
+    /**
+     * Returns {@code true} once after the player clicks, then resets to {@code false}.
      * The game loop calls this to detect a single click event.
+     *
+     * @return {@code true} exactly once per click
      */
     public boolean wasMouseClicked() {
         if (mouseClicked) {
@@ -148,9 +154,11 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
         return false;
     }
 
-    /*
-     * Returns true once after the player presses P, then resets.
-     * Used by the game loop to toggle pause state.
+    /**
+     * Returns {@code true} once after the player presses P, then resets. Used by the
+     * game loop to toggle the pause state.
+     *
+     * @return {@code true} exactly once per press
      */
     public boolean wasPausePressed() {
         if (pausePressed) {
@@ -160,7 +168,11 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
         return false;
     }
 
-    /* Returns true once after the player presses S, then resets. */
+    /**
+     * Returns {@code true} once after the player presses S, then resets.
+     *
+     * @return {@code true} exactly once per press
+     */
     public boolean wasStartPressed() {
         if (startPressed) {
             startPressed = false;
@@ -169,7 +181,11 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
         return false;
     }
 
-    /* Returns true once after the player presses Q, then resets. */
+    /**
+     * Returns {@code true} once after the player presses Q, then resets.
+     *
+     * @return {@code true} exactly once per press
+     */
     public boolean wasQuitPressed() {
         if (quitPressed) {
             quitPressed = false;
@@ -178,7 +194,11 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
         return false;
     }
 
-    /* Returns true once after the player presses R, then resets. */
+    /**
+     * Returns {@code true} once after the player presses R, then resets.
+     *
+     * @return {@code true} exactly once per press
+     */
     public boolean wasRepairPressed() {
         if (repairPressed) {
             repairPressed = false;
@@ -187,10 +207,25 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
         return false;
     }
 
-    /* Mouse position converted to game-world coordinates. */
+    /**
+     * Returns the current mouse X position converted to game-world coordinates.
+     *
+     * @return the mouse X in game-world units
+     */
     public double getMouseGameX() { return j2dGame.toGameX(mouseScreenX); }
+
+    /**
+     * Returns the current mouse Y position converted to game-world coordinates.
+     *
+     * @return the mouse Y in game-world units
+     */
     public double getMouseGameY() { return j2dGame.toGameY(mouseScreenY); }
 
-    /* Currently selected tower type: 0=none, 1=Arrow, 2=Cannon, 3=Ice. */
+    /**
+     * Returns the currently selected tower type ({@code 0} = none, {@code 1} = arrow,
+     * {@code 2} = cannon, {@code 3} = ice).
+     *
+     * @return the selected tower hotkey number
+     */
     public int getSelectedTower()             { return selectedTower; }
 }

@@ -1,15 +1,29 @@
 package be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs;
 
-/*
- * ECS SYSTEM — ages every floating text and removes the expired ones.
+/**
+ * ECS system — ages every floating text and removes the expired ones.
  *
- * Stateless logic that sweeps the FloatingTextWorld's component arrays by index.
- * Removal uses "swap-remove": the last live entity is copied into the freed slot
- * and the count shrinks. This keeps the live entities packed in [0, count) with
- * O(1) removal and no gaps — a classic data-oriented compaction technique.
+ * <p>Stateless logic that sweeps the {@link FloatingTextWorld}'s component arrays by
+ * index. Removal uses "swap-remove": the last live entity is copied into the freed
+ * slot and the count shrinks. This keeps the live entities packed in
+ * {@code [0, count)} with O(1) removal and no gaps — a classic data-oriented
+ * compaction technique.</p>
+ *
+ * @author Tower Defence team
  */
 public class LifetimeSystem {
 
+    /** Creates a lifetime system. The system is stateless and holds no fields. */
+    public LifetimeSystem() {
+    }
+
+    /**
+     * Ages each live entity by {@code deltaTime} and removes any whose age has reached
+     * its lifetime.
+     *
+     * @param world     the component datastore to update
+     * @param deltaTime the elapsed time since the previous frame, in seconds
+     */
     public void update(FloatingTextWorld world, double deltaTime) {
         for (int i = 0; i < world.count; i++) {
             world.age[i] += deltaTime;

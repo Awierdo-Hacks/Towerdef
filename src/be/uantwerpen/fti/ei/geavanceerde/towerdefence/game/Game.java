@@ -23,38 +23,32 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-/*
+/**
  * Central singleton representing the entire Tower Defence game.
  *
- * SINGLETON PATTERN:
- *   Only one Game instance exists. The constructor is private.
- *   All access goes through Game.getInstance().
+ * <p><strong>Singleton pattern:</strong> only one {@code Game} instance exists. The
+ * constructor is private and all access goes through {@link #getInstance()}.</p>
  *
- * ABSTRACT FACTORY:
- *   EntityFactory is injected via start(). The game package only knows the
- *   interface; the J2D package provides the concrete J2dEntityFactory.
- *   The factory also provides the GameView (render + input abstraction),
- *   keeping the game package completely free of visualization imports.
+ * <p><strong>Abstract Factory:</strong> an {@link EntityFactory} is injected via
+ * {@link #start(EntityFactory, ConfigManager)}. The game package only knows the
+ * interface; the J2D package provides the concrete {@code J2dEntityFactory}. The
+ * factory also provides the {@link GameView} (render + input abstraction), keeping the
+ * game package completely free of visualization imports.</p>
  *
- * ROLE:
- *   - Owns all entity lists (towers, enemies, projectiles, bonuses, base)
- *   - Tracks score and gold
- *   - Holds the current GameState
- *   - Runs the main game loop via start()
- *   - Handles player input (pause, tower placement, restart)
+ * <p><strong>Role:</strong> the game singleton owns all entity lists (towers,
+ * enemies, projectiles, base), tracks score and gold, holds the current
+ * {@link GameState}, runs the main game loop via
+ * {@link #start(EntityFactory, ConfigManager)}, and handles player input (pause, tower
+ * placement, restart).</p>
  *
- * GAME LOOP (inside start → update):
- *   1. Spawn enemies via WaveManager (leest golven uit level .properties)
- *   2. Update enemies (move + slow timer)
- *   3. Check enemies reaching base
- *   4. Update towers (cooldown tick)
- *   5. Tower area effects (IceTower slow)
- *   6. Tower targeting + firing projectiles
- *   7. Update projectiles (move toward target)
- *   8. Projectile ↔ enemy collision + splash damage
- *   9. Cleanup dead enemies (award gold/score)
- *  10. Cleanup dead projectiles + bonuses
- *  11. Win/lose check
+ * <p><strong>Game loop</strong> (inside {@code start} → {@link #update(double)}):
+ * spawn enemies via the {@code WaveManager}, update enemies (move + slow timer), check
+ * enemies reaching the base, update towers (cooldown tick), apply tower area effects
+ * (ice slow), do tower targeting + firing, update projectiles, check projectile↔enemy
+ * collisions + splash, clean up dead enemies (awarding gold/score), clean up dead
+ * projectiles, and finally run the win/lose check.</p>
+ *
+ * @author Tower Defence team
  */
 public final class Game {
 
@@ -85,7 +79,10 @@ public final class Game {
     private final List<Tower> towers;
     private final List<Enemy> enemies;
     private final List<Projectile> projectiles;
-    private Optional<Base> base;
+
+    // Nullable: null until a level is loaded. The getter wraps it in an Optional
+    // for callers — Optional is a return type, not a field type (Goetz).
+    private Base base;
 
     // -------------------------------------------------------------------------
     // Map
@@ -150,9 +147,15 @@ public final class Game {
         this.towers      = new ArrayList<>();
         this.enemies     = new ArrayList<>();
         this.projectiles = new ArrayList<>();
-        this.base        = Optional.empty();
+        this.base        = null;
     }
 
+    /**
+     * Returns the single shared {@code Game} instance, creating it on first access
+     * (lazy initialization).
+     *
+     * @return the singleton game instance
+     */
     public static Game getInstance() {
         if (instance == null) {
             instance = new Game();
@@ -164,17 +167,20 @@ public final class Game {
     // start() — the single entry point called by Main
     // =========================================================================
 
-    /*
-     * Sets up and runs the game. This is the only method Main needs to call.
+    /**
+     * Sets up and runs the game. This is the only method {@code Main} needs to call.
      *
-     * 1. Stores the factory and config
-     * 2. Gets the GameView from the factory (render + input)
-     * 3. Shows the title screen (MENU); a level is only loaded once the player
-     *    presses S — see handleInput()
-     * 4. Runs the game loop: input → update → render → sleep
+     * <p>It stores the factory and config, obtains the {@link GameView} from the
+     * factory (render + input), shows the title screen ({@link GameState#MENU} — a
+     * level is only loaded once the player presses S, see {@code handleInput()}), and
+     * then runs the game loop: input → update → render → sleep.</p>
      *
-     * The factory provides both entity creation AND the visualization layer
-     * via getView(), so Game never imports any J2D classes.
+     * <p>The factory provides both entity creation <em>and</em> the visualization layer
+     * via {@link EntityFactory#getView()}, so {@code Game} never imports any J2D
+     * classes. This method does not return — it loops until the window is closed.</p>
+     *
+     * @param factory the abstract factory used to create entities and the view
+     * @param config  the loaded game configuration
      */
     public void start(EntityFactory factory, ConfigManager config) {
         this.entityFactory = factory;
@@ -238,7 +244,7 @@ public final class Game {
             new Position(basePos.getX() + 0.5, basePos.getY() + 0.5),
             startingLives
         );
-        this.base = Optional.of(baseEntity);
+        this.base = baseEntity;
 
         // WaveManager aanmaken op basis van de level config (leest wave.count, wave.N.enemies)
         this.waveManager = new WaveManager(levelConfig);
@@ -320,7 +326,6 @@ public final class Game {
                 return;
 
             default:
-                return;
         }
     }
 
@@ -348,13 +353,11 @@ public final class Game {
 
         // Repair: R herstelt de base volledig tegen repairCost goud.
         // Enkel betalen als er genoeg goud is én de base niet al op volle HP staat.
-        if (view.wasRepairPressed()) {
-            base.ifPresent(b -> {
-                if (gold >= repairCost && b.getCurrentHealth() < b.getMaxHealth()) {
-                    spendGold(repairCost);
-                    b.repair(b.getMaxHealth());   // volledig herstel
-                }
-            });
+        if (view.wasRepairPressed() && base != null) {
+            if (gold >= repairCost && base.getCurrentHealth() < base.getMaxHealth()) {
+                spendGold(repairCost);
+                base.repair(base.getMaxHealth());   // volledig herstel
+            }
         }
 
         // Drain start/quit so a stray S/Q during play doesn't leak into the next
@@ -408,6 +411,18 @@ public final class Game {
     // GAME LOOP — called once per frame with delta time in seconds
     // =========================================================================
 
+    /**
+     * Advances the whole game world by one frame. Does nothing unless the state is
+     * {@link GameState#PLAYING}.
+     *
+     * <p>Runs, in order: enemy spawning, enemy movement and Lua AI, base-reached
+     * checks, tower cooldowns and area effects, tower targeting/firing, projectile
+     * movement and collisions (including splash), cleanup of dead enemies (awarding
+     * gold/score) and projectiles, the ECS floating-text update, and the win/lose
+     * check.</p>
+     *
+     * @param deltaTime the elapsed time since the previous frame, in seconds
+     */
     public void update(double deltaTime) {
         if (state != GameState.PLAYING) return;
 
@@ -510,7 +525,7 @@ public final class Game {
         while (it.hasNext()) {
             Enemy e = it.next();
             if (e.isAlive() && e.hasReachedBase()) {
-                base.ifPresent(b -> b.takeDamage(1));
+                if (base != null) base.takeDamage(1);
                 e.destroy();
                 it.remove();
             }
@@ -616,7 +631,7 @@ public final class Game {
      * WON:       all enemies have been spawned AND no enemies remain alive
      */
     private void checkWinLose() {
-        if (base.isPresent() && base.get().isDestroyed()) {
+        if (base != null && base.isDestroyed()) {
             state = GameState.GAME_OVER;
             return;
         }
@@ -631,48 +646,132 @@ public final class Game {
     // Getters / entity access
     // =========================================================================
 
+    /**
+     * Returns the live list of towers currently placed in the game.
+     *
+     * @return the towers list
+     */
     public List<Tower>      getTowers()      { return towers; }
+
+    /**
+     * Returns the live list of enemies currently in the game.
+     *
+     * @return the enemies list
+     */
     public List<Enemy>      getEnemies()     { return enemies; }
+
+    /**
+     * Returns the live list of projectiles currently in flight.
+     *
+     * @return the projectiles list
+     */
     public List<Projectile> getProjectiles() { return projectiles; }
 
-    /** Read-only access to the ECS floating-text world (used by the renderer). */
+    /**
+     * Returns read-only access to the ECS floating-text world (used by the renderer).
+     *
+     * @return the floating-text component datastore
+     */
     public FloatingTextWorld getFloatingText() { return floatingText; }
 
-    public Optional<Base> getBase()          { return base; }
+    /**
+     * Returns the player's base, if a level is currently loaded.
+     *
+     * @return an {@link Optional} containing the base, or empty before a level loads
+     */
+    public Optional<Base> getBase()          { return Optional.ofNullable(base); }
 
+    /**
+     * Returns the current level's map.
+     *
+     * @return the active game map
+     */
     public GameMap getGameMap()              { return gameMap; }
 
+    /**
+     * Returns the current game state.
+     *
+     * @return the current {@link GameState}
+     */
     public GameState getState()              { return state; }
+
+    /**
+     * Sets the current game state.
+     *
+     * @param s the new {@link GameState}
+     */
     public void      setState(GameState s)   { this.state = s; }
 
+    /**
+     * Returns the player's cumulative score (preserved across levels).
+     *
+     * @return the current score
+     */
     public int  getScore()                   { return score; }
 
+    /**
+     * Returns the player's current gold (reset per level).
+     *
+     * @return the current gold
+     */
     public int  getGold()                    { return gold; }
 
-    /** Aantal vijanden dat nog gespawnd wordt in de huidige golf (voor de HUD). */
+    /**
+     * Returns the number of enemies still to be spawned in the current wave (for the
+     * HUD).
+     *
+     * @return the remaining spawns in the current wave, or {@code 0} if no wave is active
+     */
     public int getEnemiesRemaining() {
         return waveManager != null ? waveManager.getRemainingSpawnsInCurrentWave() : 0;
     }
 
-    /** Huidig levelnummer (1-gebaseerd, voor de HUD). */
+    /**
+     * Returns the current level number (1-based, for the HUD).
+     *
+     * @return the current level number
+     */
     public int getCurrentLevel() { return currentLevel; }
 
-    /** Totaal aantal levels (voor de HUD en de WON-schermkeuze). */
+    /**
+     * Returns the total number of levels (for the HUD and the WON-screen branching).
+     *
+     * @return the total number of levels
+     */
     public int getMaxLevels() { return maxLevels; }
 
-    /** True als het huidige level het laatste is (→ Ultimate Victory i.p.v. level complete). */
+    /**
+     * Returns whether the current level is the last one (so the WON screen shows
+     * "ultimate victory" instead of "level complete").
+     *
+     * @return {@code true} if the current level is the final level
+     */
     public boolean isLastLevel() { return currentLevel >= maxLevels; }
 
-    /** Huidig golfnummer (1-gebaseerd, voor de HUD). */
+    /**
+     * Returns the current wave number (1-based, for the HUD).
+     *
+     * @return the current wave number, or {@code 0} if no wave manager is active
+     */
     public int getCurrentWave() {
         return waveManager != null ? waveManager.getCurrentWaveNumber() : 0;
     }
 
-    /** Totaal aantal golven in dit level (voor de HUD). */
+    /**
+     * Returns the total number of waves in this level (for the HUD).
+     *
+     * @return the total number of waves, or {@code 0} if no wave manager is active
+     */
     public int getTotalWaves() {
         return waveManager != null ? waveManager.getTotalWaves() : 0;
     }
 
+    /**
+     * Deducts the given amount of gold from the player.
+     *
+     * @param amount the amount of gold to spend
+     * @throws IllegalStateException if the player does not have enough gold
+     */
     public void spendGold(int amount) {
         if (amount > this.gold) {
             throw new IllegalStateException(

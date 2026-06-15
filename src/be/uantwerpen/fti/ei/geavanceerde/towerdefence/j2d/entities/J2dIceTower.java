@@ -9,21 +9,33 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-/*
- * Concrete IceTower with Java2D rendering.
+/**
+ * Concrete {@link IceTower} with Java2D rendering.
  *
- * Uses the tower_ice.png sprite. Falls back to a cyan diamond if the
- * sprite cannot be loaded. The slow-range ring is drawn generically for
- * every tower by J2dGame.renderTowerRanges().
+ * <p>Uses the {@code tower_ice.png} sprite, falling back to a cyan diamond if the
+ * sprite cannot be loaded. The slow-range ring is drawn generically for every tower by
+ * {@code J2dGame.renderTowerRanges()}.</p>
+ *
+ * @author Tower Defence team
  */
 public class J2dIceTower extends IceTower {
 
+    /** Fallback fill colour when the sprite cannot be loaded. */
     private static final Color FILL   = new Color(0, 206, 209);
+    /** Fallback border colour when the sprite cannot be loaded. */
     private static final Color BORDER = new Color(0, 139, 139);
 
+    /** The view used for graphics access and coordinate conversion. */
     private final J2dGame j2dGame;
+    /** The tower sprite, or {@code null} if it could not be loaded. */
     private final BufferedImage sprite;
 
+    /**
+     * Creates a Java2D ice tower at the given position.
+     *
+     * @param position the build position in game-world coordinates
+     * @param j2dGame  the view used for rendering and coordinate conversion
+     */
     public J2dIceTower(Position position, J2dGame j2dGame) {
         super(position, DEFAULT_RANGE, DEFAULT_SLOW_FACTOR, DEFAULT_SLOW_DURATION, DEFAULT_COST);
         this.j2dGame = j2dGame;

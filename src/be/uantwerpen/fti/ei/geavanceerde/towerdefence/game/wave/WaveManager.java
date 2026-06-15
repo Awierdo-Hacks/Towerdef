@@ -7,30 +7,32 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-/*
+/**
  * Beheert de volgorde en timing van alle golven in een level.
  *
- * VERANTWOORDELIJKHEDEN:
- *   - Golven inlezen uit de level .properties file (wave.count, wave.N.enemies)
- *   - Bijhouden welke golf actief is
- *   - Wachttijd tussen golven hanteren (INTER_WAVE_DELAY seconden)
- *   - Per frame tick(deltaTime) aanbieden → geeft Optional<String> met het
- *     te spawnen vijandtype terug, of Optional.empty() als er niets spawnt
+ * <p>Verantwoordelijkheden:</p>
+ * <ul>
+ *   <li>golven inlezen uit de level {@code .properties} file ({@code wave.count},
+ *       {@code wave.N.enemies});</li>
+ *   <li>bijhouden welke golf actief is;</li>
+ *   <li>de wachttijd tussen golven hanteren ({@code INTER_WAVE_DELAY} seconden);</li>
+ *   <li>per frame {@link #tick(double)} aanbieden, dat een {@code Optional<String>}
+ *       met het te spawnen vijandtype teruggeeft, of {@link java.util.Optional#empty()}
+ *       als er niets spawnt.</li>
+ * </ul>
  *
- * LEVEL CONFIG FORMAAT:
+ * <p>Level config formaat:</p>
+ * <pre>
  *   wave.count=5
  *   wave.1.enemies=basic:5
  *   wave.2.enemies=basic:8,armored:2
  *   wave.3.enemies=basic:10,armored:4,flying:1
+ * </pre>
  *
- *   Elk "type:count" item beschrijft een EnemyEntry die doorgestuurd wordt
- *   naar de Wave constructor.
+ * <p>Elk {@code "type:count"} item beschrijft een {@link Wave.EnemyEntry} die
+ * doorgestuurd wordt naar de {@link Wave} constructor.</p>
  *
- * GEBRUIK (in Game.java):
- *   waveManager = new WaveManager(levelConfig);
- *   // elke frame:
- *   Optional<String> spawn = waveManager.tick(deltaTime);
- *   spawn.ifPresent(type -> spawnEnemy(type));
+ * @author Tower Defence team
  */
 public class WaveManager {
 
@@ -65,12 +67,14 @@ public class WaveManager {
     // Constructor
     // -------------------------------------------------------------------------
 
-    /*
-     * Leest alle golfdefinities uit de level ConfigManager.
+    /**
+     * Leest alle golfdefinities uit de level {@code ConfigManager}.
      *
-     * Als wave.count ontbreekt of nul is, wordt een lege golvenlijst gemaakt
-     * zodat het spel niet crasht. De win-conditie in Game.java detecteert dan
-     * meteen dat alle golven klaar zijn.
+     * <p>Als {@code wave.count} ontbreekt of nul is, wordt een lege golvenlijst
+     * gemaakt zodat het spel niet crasht; de win-conditie in {@code Game} detecteert
+     * dan meteen dat alle golven klaar zijn.</p>
+     *
+     * @param levelConfig de config van het level met de golfdefinities
      */
     public WaveManager(ConfigManager levelConfig) {
         this.waves              = new ArrayList<>();
@@ -92,20 +96,23 @@ public class WaveManager {
     // Update — elke frame aanroepen
     // -------------------------------------------------------------------------
 
-    /*
+    /**
      * Verwerkt de spawn-logica voor dit frame.
      *
-     * Gedrag:
-     *   1. Als allWavesFinished → geeft Optional.empty() terug.
-     *   2. Als interWaveTimer > 0 → wachttijd loopt, geeft Optional.empty() terug.
-     *   3. Anders wordt de actieve golf geticked:
-     *        a. Als de golf een vijand wil spawnen → geef die terug.
-     *        b. Als de golf klaar is → start de teller voor de volgende golf
-     *           (of markeer allWavesFinished als het de laatste was).
+     * <p>Gedrag:</p>
+     * <ol>
+     *   <li>als alle golven klaar zijn, wordt {@link Optional#empty()} teruggegeven;</li>
+     *   <li>als de wachttijd tussen golven nog loopt, wordt {@link Optional#empty()}
+     *       teruggegeven;</li>
+     *   <li>anders wordt de actieve golf geticked: spawnt die een vijand dan wordt het
+     *       type teruggegeven; is de golf klaar dan start de teller voor de volgende
+     *       golf (of worden alle golven als afgerond gemarkeerd als het de laatste was).</li>
+     * </ol>
      *
      * @param deltaTime verstreken tijd in seconden sinds het vorige frame
-     * @return het vijandtype dat gespawnd moet worden ("basic", "armored",
-     *         "flying"), of Optional.empty() als er niets spawnt dit frame
+     * @return het vijandtype dat gespawnd moet worden ({@code "basic"},
+     *         {@code "armored"}, {@code "flying"}), of {@link Optional#empty()} als er
+     *         niets spawnt dit frame
      */
     public Optional<String> tick(double deltaTime) {
         if (allWavesFinished) return Optional.empty();
@@ -204,24 +211,38 @@ public class WaveManager {
     // Queries
     // -------------------------------------------------------------------------
 
-    /** Geeft true als alle golven volledig gespawnd zijn. */
+    /**
+     * Geeft terug of alle golven volledig gespawnd zijn.
+     *
+     * @return {@code true} als alle golven klaar zijn
+     */
     public boolean isFinished() {
         return allWavesFinished;
     }
 
-    /** Het (1-gebaseerde) nummer van de huidige golf. */
+    /**
+     * Geeft het (1-gebaseerde) nummer van de huidige golf terug.
+     *
+     * @return het huidige golfnummer
+     */
     public int getCurrentWaveNumber() {
         return Math.min(currentWaveIndex + 1, waves.size());
     }
 
-    /** Totaal aantal golven in dit level. */
+    /**
+     * Geeft het totale aantal golven in dit level terug.
+     *
+     * @return het aantal golven
+     */
     public int getTotalWaves() {
         return waves.size();
     }
 
     /**
-     * Aantal vijanden dat in de huidige golf nog gespawnd moet worden.
-     * Handig voor de HUD ("Vijanden over: X").
+     * Geeft het aantal vijanden terug dat in de huidige golf nog gespawnd moet
+     * worden. Handig voor de HUD ("Vijanden over: X").
+     *
+     * @return het resterende aantal spawns in de huidige golf, of {@code 0} als alles klaar is
      */
     public int getRemainingSpawnsInCurrentWave() {
         if (allWavesFinished || currentWaveIndex >= waves.size()) return 0;
@@ -229,14 +250,20 @@ public class WaveManager {
     }
 
     /**
-     * Seconden tot de volgende golf start (0 als een golf actief is).
-     * Handig voor een afteltimer in de HUD.
+     * Geeft het aantal seconden tot de volgende golf start terug ({@code 0} als een
+     * golf actief is). Handig voor een afteltimer in de HUD.
+     *
+     * @return de resterende wachttijd in seconden
      */
     public double getTimeUntilNextWave() {
         return Math.max(0.0, interWaveTimer);
     }
 
-    /** Alleen-lezen view op alle golven (voor tests/debug). */
+    /**
+     * Geeft een alleen-lezen view op alle golven terug (voor tests/debug).
+     *
+     * @return een onveranderlijke lijst met alle golven
+     */
     public List<Wave> getWaves() {
         return Collections.unmodifiableList(waves);
     }

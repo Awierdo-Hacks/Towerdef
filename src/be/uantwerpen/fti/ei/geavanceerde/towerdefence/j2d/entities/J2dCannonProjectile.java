@@ -9,21 +9,37 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-/*
- * Concrete CannonProjectile with Java2D rendering.
+/**
+ * Concrete {@link CannonProjectile} with Java2D rendering.
  *
- * Uses the projectile_cannon.png sprite. Falls back to an orange circle
- * if the sprite cannot be loaded. The splash behaviour itself lives in the
- * game-logic superclass CannonProjectile.onHit().
+ * <p>Uses the {@code projectile_cannon.png} sprite, falling back to an orange circle
+ * if the sprite cannot be loaded. The splash behaviour itself lives in the game-logic
+ * superclass {@code CannonProjectile.onHit()}.</p>
+ *
+ * @author Tower Defence team
  */
 public class J2dCannonProjectile extends CannonProjectile {
 
+    /** Fallback fill colour when the sprite cannot be loaded. */
     private static final Color FILL   = new Color(255, 150, 50);
+    /** Fallback border colour when the sprite cannot be loaded. */
     private static final Color BORDER = new Color(150, 80, 0);
+    /** Travel speed of the projectile in game-world units per second. */
     private static final double PROJECTILE_SPEED = 8.0;
 
+    /** The view used for graphics access and coordinate conversion. */
     private final J2dGame j2dGame;
 
+    /**
+     * Creates a Java2D cannon projectile flying from {@code start} to {@code target}.
+     *
+     * @param start        the position the projectile is fired from
+     * @param target       the world position the projectile flies toward
+     * @param damage       the direct-hit damage
+     * @param splashRadius the splash radius in game-world units
+     * @param splashDamage the damage applied to other enemies within the splash radius
+     * @param j2dGame      the view used for rendering and coordinate conversion
+     */
     public J2dCannonProjectile(Position start, Position target, int damage,
                                double splashRadius, int splashDamage, J2dGame j2dGame) {
         super(start, target, PROJECTILE_SPEED, damage, splashRadius, splashDamage);
