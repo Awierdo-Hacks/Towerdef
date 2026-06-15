@@ -69,6 +69,9 @@ public final class Game {
     private int score;
     private int gold;
 
+    // Goudkost om de base volledig te repareren (uit config, default 50).
+    private int repairCost;
+
     // Current level (1-based) and the total number of levels (from config).
     // Used for level progression and the WON-screen branching (level complete
     // vs. ultimate victory).
@@ -226,6 +229,7 @@ public final class Game {
         // Fresh per-level state (entities + gold), score is preserved
         clearEntities();
         this.gold = config.getInt("starting.gold", 200);
+        this.repairCost = config.getInt("repair.cost", 50);
 
         // Create the base at the centre of the base tile
         int startingLives = config.getInt("starting.lives", 20);
@@ -340,6 +344,17 @@ public final class Game {
         // Pause
         if (view.wasPausePressed()) {
             state = GameState.PAUSED;
+        }
+
+        // Repair: R herstelt de base volledig tegen repairCost goud.
+        // Enkel betalen als er genoeg goud is én de base niet al op volle HP staat.
+        if (view.wasRepairPressed()) {
+            base.ifPresent(b -> {
+                if (gold >= repairCost && b.getCurrentHealth() < b.getMaxHealth()) {
+                    spendGold(repairCost);
+                    b.repair(b.getMaxHealth());   // volledig herstel
+                }
+            });
         }
 
         // Drain start/quit so a stray S/Q during play doesn't leak into the next

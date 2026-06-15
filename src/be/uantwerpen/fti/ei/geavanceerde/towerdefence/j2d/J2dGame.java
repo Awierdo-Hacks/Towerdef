@@ -629,6 +629,9 @@ public class J2dGame implements GameView {
     public boolean wasQuitPressed()   { return inputHandler.wasQuitPressed(); }
 
     @Override
+    public boolean wasRepairPressed() { return inputHandler.wasRepairPressed(); }
+
+    @Override
     public double getMouseGameX()     { return inputHandler.getMouseGameX(); }
 
     @Override

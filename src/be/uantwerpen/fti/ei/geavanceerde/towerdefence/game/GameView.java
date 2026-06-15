@@ -27,6 +27,9 @@ public interface GameView {
     /* True once after the player presses the quit key (Q). Consume-once pattern. */
     boolean wasQuitPressed();
 
+    /* True once after the player presses the repair key (R). Consume-once pattern. */
+    boolean wasRepairPressed();
+
     /* Mouse X position in game-world coordinates. */
     double getMouseGameX();
 

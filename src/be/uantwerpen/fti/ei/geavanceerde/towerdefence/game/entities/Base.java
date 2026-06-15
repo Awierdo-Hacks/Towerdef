@@ -58,6 +58,14 @@ public abstract class Base extends Entity {
         }
     }
 
+    /*
+     * Herstelt de base met het gegeven aantal HP, begrensd op maxHealth.
+     * Tegenhanger van takeDamage(): de speler kan tegen betaling levens terugkopen.
+     */
+    public void repair(int amount) {
+        currentHealth = Math.min(currentHealth + amount, maxHealth);
+    }
+
     // -------------------------------------------------------------------------
     // Getters
     // -------------------------------------------------------------------------

@@ -15,6 +15,7 @@ import java.awt.event.MouseMotionListener;
  *   P           — toggle pause
  *   S           — start / confirm (menu, next level, play again)
  *   Q           — quit (menu, end screens)
+ *   R           — repair base (volledig herstel tegen goud)
  *
  * MOUSE:
  *   Left click  — place the selected tower at the clicked map position
@@ -38,6 +39,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
     private boolean pausePressed;
     private boolean startPressed;   // S — start / confirm
     private boolean quitPressed;    // Q — quit
+    private boolean repairPressed;  // R — repair base
 
     // -------------------------------------------------------------------------
     // Mouse state
@@ -82,6 +84,7 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
             case KeyEvent.VK_P: pausePressed = true; break;
             case KeyEvent.VK_S: startPressed = true; break;
             case KeyEvent.VK_Q: quitPressed  = true; break;
+            case KeyEvent.VK_R: repairPressed = true; break;
         }
     }
 
@@ -170,6 +173,15 @@ public class InputHandler implements KeyListener, MouseListener, MouseMotionList
     public boolean wasQuitPressed() {
         if (quitPressed) {
             quitPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Returns true once after the player presses R, then resets. */
+    public boolean wasRepairPressed() {
+        if (repairPressed) {
+            repairPressed = false;
             return true;
         }
         return false;
