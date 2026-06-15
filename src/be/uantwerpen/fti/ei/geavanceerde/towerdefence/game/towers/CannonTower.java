@@ -44,7 +44,7 @@ public abstract class CannonTower extends Tower {
     public static final double SIZE                = 0.9;
 
     // Splash damage values — read by the game loop after a projectile lands
-    public static final double DEFAULT_SPLASH_RADIUS = 1.2;  // game-world units
+    public static final double DEFAULT_SPLASH_RADIUS = 1.5;  // game-world units
     public static final double DEFAULT_SPLASH_DAMAGE_FRACTION = 0.4;  // 40% of main damage
 
     // Splash stats — copied onto the CannonProjectile this tower fires

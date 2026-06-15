@@ -19,12 +19,28 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
  */
 public enum TowerType {
 
-    ARROW  { public Tower create(EntityFactory f, Position p) { return f.createArrowTower(p);  } },
-    CANNON { public Tower create(EntityFactory f, Position p) { return f.createCannonTower(p); } },
-    ICE    { public Tower create(EntityFactory f, Position p) { return f.createIceTower(p);    } };
+    ARROW (ArrowTower.DEFAULT_RANGE)  { public Tower create(EntityFactory f, Position p) { return f.createArrowTower(p);  } },
+    CANNON(CannonTower.DEFAULT_RANGE) { public Tower create(EntityFactory f, Position p) { return f.createCannonTower(p); } },
+    ICE   (IceTower.DEFAULT_RANGE)    { public Tower create(EntityFactory f, Position p) { return f.createIceTower(p);    } };
+
+    // Detection/effect radius of this tower type, in game-world units. Mirrors the
+    // DEFAULT_RANGE the factory builds each tower with, kept here so the type can
+    // answer "how far do I reach?" WITHOUT creating an instance — used by the
+    // visualization layer to draw the placement range preview. Pure game-data
+    // (no awt/swing), so the game/visualization separation is preserved.
+    private final double range;
+
+    TowerType(double range) {
+        this.range = range;
+    }
 
     /* Creates this tower type at the given position via the abstract factory. */
     public abstract Tower create(EntityFactory f, Position p);
+
+    /* Detection radius (game-world units) this tower type will be built with. */
+    public double getRange() {
+        return range;
+    }
 
     /*
      * Maps a player hotkey (1 = arrow, 2 = cannon, 3 = ice) to a tower type.

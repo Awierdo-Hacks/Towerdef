@@ -12,15 +12,14 @@ import java.awt.image.BufferedImage;
 /*
  * Concrete IceTower with Java2D rendering.
  *
- * Uses the tower_ice.png sprite with a translucent aura circle
- * showing the slow range. Falls back to a cyan diamond if the
- * sprite cannot be loaded.
+ * Uses the tower_ice.png sprite. Falls back to a cyan diamond if the
+ * sprite cannot be loaded. The slow-range ring is drawn generically for
+ * every tower by J2dGame.renderTowerRanges().
  */
 public class J2dIceTower extends IceTower {
 
-    private static final Color FILL       = new Color(0, 206, 209);
-    private static final Color BORDER     = new Color(0, 139, 139);
-    private static final Color AURA_COLOR = new Color(0, 206, 209, 40);
+    private static final Color FILL   = new Color(0, 206, 209);
+    private static final Color BORDER = new Color(0, 139, 139);
 
     private final J2dGame j2dGame;
     private final BufferedImage sprite;
@@ -37,21 +36,12 @@ public class J2dIceTower extends IceTower {
         if (g == null) return;
 
         // Visuele grootte (groter dan de logische hitbox), gecentreerd op de positie.
-        // De range-aura hieronder gebruikt de logische 'range' en blijft dus ongewijzigd.
         double vw = width  * J2dGame.SPRITE_SCALE;
         double vh = height * J2dGame.SPRITE_SCALE;
         int sx = j2dGame.toScreenX(position.getX() - vw / 2);
         int sy = j2dGame.toScreenY(position.getY() - vh / 2);
         int sw = j2dGame.toScreenWidth(vw);
         int sh = j2dGame.toScreenHeight(vh);
-
-        // Translucent aura circle showing slow range
-        int rangeW = j2dGame.toScreenWidth(range * 2);
-        int rangeH = j2dGame.toScreenHeight(range * 2);
-        int rangeX = j2dGame.toScreenX(position.getX() - range);
-        int rangeY = j2dGame.toScreenY(position.getY() - range);
-        g.setColor(AURA_COLOR);
-        g.fillOval(rangeX, rangeY, rangeW, rangeH);
 
         if (sprite != null) {
             g.drawImage(sprite, sx, sy, sw, sh, null);

@@ -148,6 +148,9 @@ public abstract class Tower extends Entity {
 
     public int     getDamage()       { return damage; }
 
+    /* Detection/effect radius in game-world units — read by the view to draw the range ring. */
+    public double  getRange()        { return range; }
+
     /* Gold cost to place this tower — read by the game loop before purchase. */
     public int     getCost()         { return cost; }
 

@@ -13,7 +13,7 @@ import java.util.Optional;
  * A support tower that slows all enemies within its range.
  *
  * Stats (defaults):
- *   range      : 2.0 game-world units
+ *   range      : 3.0 game-world units
  *   damage     : 0 (no direct damage)
  *   fireRate   : 0 (doesn't fire projectiles — uses area effect instead)
  *   cost       : 75 gold
@@ -38,7 +38,7 @@ import java.util.Optional;
  */
 public abstract class IceTower extends Tower {
 
-    public static final double DEFAULT_RANGE         = 2.0;
+    public static final double DEFAULT_RANGE         = 3.0;
     public static final int    DEFAULT_DAMAGE        = 0;     // no direct damage
     public static final double DEFAULT_FIRE_RATE     = 0.0;   // does not fire
     public static final int    DEFAULT_COST          = 75;

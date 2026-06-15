@@ -11,7 +11,10 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.FloatingTextKind;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.FloatingTextWorld;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.GameMap;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.Tile;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.IceTower;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.TowerType;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.ConfigManager;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 
 import java.awt.Canvas;
 import java.awt.Color;
@@ -94,6 +97,21 @@ public class J2dGame implements GameView {
     private static final Color COLOR_SPAWN      = new Color(200, 80, 80);
     private static final Color COLOR_BASE_TILE  = new Color(255, 215, 0);
     private static final Color COLOR_GRID_LINE  = new Color(0, 0, 0, 30);
+
+    // Range ring drawn around every placed tower (subtle, always on).
+    private static final Color COLOR_RANGE_FILL = new Color(255, 255, 255, 22);
+    private static final Color COLOR_RANGE_EDGE = new Color(255, 255, 255, 90);
+
+    // IceTower keeps its signature cyan slow-aura, like before.
+    private static final Color COLOR_ICE_RANGE_FILL = new Color(0, 206, 209, 40);
+    private static final Color COLOR_ICE_RANGE_EDGE = new Color(0, 206, 209, 120);
+
+    // Tower placement preview — the detection-radius circle + hovered tile, shown
+    // while a tower is selected. Green-ish on a valid build spot, red-ish otherwise.
+    private static final Color COLOR_PREVIEW_OK_FILL  = new Color(0, 200, 255, 40);
+    private static final Color COLOR_PREVIEW_OK_EDGE  = new Color(0, 200, 255, 170);
+    private static final Color COLOR_PREVIEW_BAD_FILL = new Color(220, 60, 60, 40);
+    private static final Color COLOR_PREVIEW_BAD_EDGE = new Color(220, 60, 60, 170);
 
     // HUD
     private static final Color COLOR_HUD_BG   = new Color(0, 0, 0, 150);
@@ -243,6 +261,9 @@ public class J2dGame implements GameView {
             // Base first (background layer)
             game.getBase().ifPresent(Base::render);
 
+            // Range rings beneath the towers so the sprites stay crisp on top
+            renderTowerRanges();
+
             // Towers
             for (Tower t : game.getTowers()) {
                 if (t.isAlive()) t.render();
@@ -261,7 +282,12 @@ public class J2dGame implements GameView {
             // ECS floating combat text (damage numbers, gold popups) — above entities
             renderFloatingText();
 
-            // 4. HUD overlay
+            // 4. Tower placement preview (detection radius) — only while playing
+            if (game.getState() == GameState.PLAYING) {
+                renderPlacementPreview();
+            }
+
+            // 5. HUD overlay
             renderHUD();
 
         } finally {
@@ -310,6 +336,82 @@ public class J2dGame implements GameView {
                 toScreenY(ft.getY(i))
             );
         }
+    }
+
+    /*
+     * Draws a subtle detection-radius ring around every placed tower, so the player
+     * can always see each tower's reach. The radius is read from the game layer
+     * (Tower.getRange()); this layer only turns it into pixels — no presentation
+     * detail leaks into the game package.
+     */
+    private void renderTowerRanges() {
+        for (Tower t : Game.getInstance().getTowers()) {
+            if (!t.isAlive()) continue;
+
+            double cx    = t.getPosition().getX();
+            double cy    = t.getPosition().getY();
+            double range = t.getRange();
+
+            int rx = toScreenX(cx - range);
+            int ry = toScreenY(cy - range);
+            int rw = toScreenWidth(range * 2);
+            int rh = toScreenHeight(range * 2);
+
+            // IceTower keeps its cyan aura; the others use the neutral white ring.
+            boolean ice = t instanceof IceTower;
+            g2d.setColor(ice ? COLOR_ICE_RANGE_FILL : COLOR_RANGE_FILL);
+            g2d.fillOval(rx, ry, rw, rh);
+            g2d.setColor(ice ? COLOR_ICE_RANGE_EDGE : COLOR_RANGE_EDGE);
+            g2d.drawOval(rx, ry, rw, rh);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Tower placement preview — detection-radius indicator
+    // -------------------------------------------------------------------------
+
+    /*
+     * While a tower type is selected, draws its detection radius as a translucent
+     * circle around the hovered tile (plus the tile outline), so the player can see
+     * the reach before committing. The circle is centred on the tile the tower would
+     * snap to — the SAME centre Game.handlePlayInput() uses for placement.
+     *
+     * The radius comes from TowerType.getRange() (pure game-data), and buildability
+     * from GameMap.canBuildAt() — this layer only reads that data and turns it into
+     * pixels/colours, so no presentation logic leaks into the game package.
+     */
+    private void renderPlacementPreview() {
+        TowerType type = TowerType.fromHotkey(inputHandler.getSelectedTower());
+        if (type == null) return;   // nothing selected — no preview
+
+        GameMap map = Game.getInstance().getGameMap();
+        if (map == null) return;
+
+        // Tile the tower would snap to (matches the placement maths in Game)
+        double mouseX = inputHandler.getMouseGameX();
+        double mouseY = inputHandler.getMouseGameY();
+        int tileX = (int) mouseX;
+        int tileY = (int) mouseY;
+        double centerX = tileX + 0.5;
+        double centerY = tileY + 0.5;
+
+        boolean buildable = map.canBuildAt(new Position(mouseX, mouseY));
+        Color fill = buildable ? COLOR_PREVIEW_OK_FILL : COLOR_PREVIEW_BAD_FILL;
+        Color edge = buildable ? COLOR_PREVIEW_OK_EDGE : COLOR_PREVIEW_BAD_EDGE;
+
+        // Detection radius circle, centred on the tile centre
+        double range = type.getRange();
+        int rx = toScreenX(centerX - range);
+        int ry = toScreenY(centerY - range);
+        int rw = toScreenWidth(range * 2);
+        int rh = toScreenHeight(range * 2);
+        g2d.setColor(fill);
+        g2d.fillOval(rx, ry, rw, rh);
+        g2d.setColor(edge);
+        g2d.drawOval(rx, ry, rw, rh);
+
+        // Highlight the target tile itself
+        g2d.drawRect(toScreenX(tileX), toScreenY(tileY), toScreenWidth(1.0), toScreenHeight(1.0));
     }
 
     // -------------------------------------------------------------------------
