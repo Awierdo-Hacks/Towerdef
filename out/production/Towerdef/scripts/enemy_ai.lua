@@ -20,7 +20,7 @@
 
 -- Basissnelheid per type (1.0 = standaard)
 local BASE_SPEED = {
-    basic   = 1.0,
+    basic   = 20,
     armored = 0.7,   -- zwaar gepantserd, langzamer
     flying  = 1.4,   -- vliegt, sneller
 }
