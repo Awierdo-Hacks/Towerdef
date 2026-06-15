@@ -9,10 +9,9 @@ import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.FloatingTextWorld
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.LifetimeSystem;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.ecs.MovementSystem;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.factory.EntityFactory;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.enemies.EnemyType;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.map.GameMap;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.ArrowTower;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.CannonTower;
-import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.IceTower;
+import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.towers.TowerType;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.ConfigManager;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Position;
 import be.uantwerpen.fti.ei.geavanceerde.towerdefence.game.util.Stopwatch;
@@ -354,9 +353,10 @@ public final class Game {
         // Mouse click
         if (!view.wasMouseClicked()) return;
 
-        // Tower placement
-        int towerType = view.getSelectedTower();
-        if (towerType == 0) return;
+        // Tower placement — translate the player's hotkey (1/2/3) to a tower type.
+        // Returns null for 0 (nothing selected) or any unknown key.
+        TowerType towerType = TowerType.fromHotkey(view.getSelectedTower());
+        if (towerType == null) return;
 
         // Convert mouse position to game-world tile coordinates
         double gameX = view.getMouseGameX();
@@ -378,28 +378,14 @@ public final class Game {
             if (dx < 0.5 && dy < 0.5) return;
         }
 
-        // Determine cost and check if the player can afford it
-        int cost;
-        switch (towerType) {
-            case 1: cost = ArrowTower.DEFAULT_COST;  break;
-            case 2: cost = CannonTower.DEFAULT_COST; break;
-            case 3: cost = IceTower.DEFAULT_COST;    break;
-            default: return;
-        }
+        // Create the tower via the Abstract Factory (the enum picks the right
+        // factory method polymorphically — no switch, no concrete imports here).
+        Tower tower = towerType.create(entityFactory, towerPos);
 
-        if (gold < cost) return;
+        // The tower reports its own cost; only place it if the player can afford it.
+        if (gold < tower.getCost()) return;
 
-        // Create the tower via the Abstract Factory
-        Tower tower;
-        switch (towerType) {
-            case 1: tower = entityFactory.createArrowTower(towerPos);  break;
-            case 2: tower = entityFactory.createCannonTower(towerPos); break;
-            case 3: tower = entityFactory.createIceTower(towerPos);    break;
-            default: return;
-        }
-
-        // Deduct gold and add the tower to the game
-        spendGold(cost);
+        spendGold(tower.getCost());
         towers.add(tower);
     }
 
@@ -479,30 +465,20 @@ public final class Game {
      * als dat beschikbaar is, anders het grondpad.
      */
     private void updateSpawner(double deltaTime) {
-        waveManager.tick(deltaTime).ifPresent(type -> {
+        waveManager.tick(deltaTime).ifPresent(typeStr -> {
             List<Position> groundPath = gameMap.getEnemyPath().getWaypoints();
-            Enemy enemy;
 
-            switch (type) {
-                case "flying":
-                    // Vliegende vijanden nemen het luchtpad als dat bestaat
-                    if (gameMap.hasFlyingPath()) {
-                        enemy = entityFactory.createFlyingEnemy(
-                            gameMap.getFlyingPath().getWaypoints());
-                    } else {
-                        enemy = entityFactory.createFlyingEnemy(groundPath);
-                    }
-                    break;
-                case "armored":
-                    enemy = entityFactory.createArmoredEnemy(groundPath);
-                    break;
-                default:
-                    // "basic" en alle onbekende types → BasicEnemy
-                    enemy = entityFactory.createBasicEnemy(groundPath);
-                    break;
-            }
+            // Resolve the wave-config string to a type (unknown → BASIC).
+            EnemyType type = EnemyType.fromId(typeStr);
 
-            enemies.add(enemy);
+            // Path choice stays here (it depends on the GameMap, which the factory
+            // must not know about) but keys on the type property, not a string.
+            List<Position> path = (type.usesAirPath() && gameMap.hasFlyingPath())
+                ? gameMap.getFlyingPath().getWaypoints()
+                : groundPath;
+
+            // The enum picks the right factory method polymorphically.
+            enemies.add(type.create(entityFactory, path));
         });
     }
 

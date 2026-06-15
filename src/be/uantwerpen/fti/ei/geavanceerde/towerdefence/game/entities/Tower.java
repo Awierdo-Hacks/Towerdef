@@ -148,6 +148,9 @@ public abstract class Tower extends Entity {
 
     public int     getDamage()       { return damage; }
 
+    /* Gold cost to place this tower — read by the game loop before purchase. */
+    public int     getCost()         { return cost; }
+
     /* Returns true when the tower is allowed to fire (cooldown expired). */
     public boolean isReadyToFire()   { return fireCooldown <= 0; }
 }
